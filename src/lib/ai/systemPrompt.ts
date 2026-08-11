@@ -1,6 +1,7 @@
-import { mockDb } from "@/lib/mockStore";
+import { getContacts } from "@/lib/queries/contacts";
+import { getSettings } from "@/lib/queries/settings";
 
-export function generateSystemPrompt(): string {
+export async function generateSystemPrompt(): Promise<string> {
   const now = new Date();
 
   // Helper to format date in Asia/Kolkata
@@ -33,20 +34,21 @@ export function generateSystemPrompt(): string {
   nextMonday.setDate(now.getDate() + daysUntilMonday);
   const mondayStr = nextMonday.toISOString().split("T")[0];
 
-  const redactPii = mockDb.settings.redact_pii !== false;
+  const [contacts, settings] = await Promise.all([getContacts(), getSettings()]);
+  const redactPii = settings.redact_pii !== false;
 
-  const activeContacts = mockDb.contacts.filter((c: any) => !["lost", "churned"].includes(c.stage));
+  const activeContacts = contacts.filter((c: any) => !["lost", "churned"].includes(c.stage));
   const totalPipelineValue = activeContacts.reduce((sum: number, c: any) => sum + (c.deal_value || 0), 0);
 
   const stageCounts: Record<string, number> = {};
-  for (const c of mockDb.contacts) {
+  for (const c of contacts) {
     stageCounts[c.stage] = (stageCounts[c.stage] || 0) + 1;
   }
   const stageSummary = Object.entries(stageCounts)
     .map(([stage, count]) => `${stage}: ${count}`)
     .join(", ");
 
-  const recentContacts = mockDb.contacts.slice(0, 8).map((c: any) => {
+  const recentContacts = contacts.slice(0, 8).map((c: any) => {
     const phoneDisplay = redactPii
       ? c.phone.replace(/(\+\d{2})?(\d{5})(\d{5})/, "$1 •••••$3")
       : c.phone;
@@ -75,7 +77,7 @@ ${recentContacts || "(No contacts yet - CRM is empty)"}
 
 SHORTHAND & NATURAL LANGUAGE RESOLUTION RULES:
 - "this guy", "him", "usko" → resolve to the contact named earlier in this conversation thread; else the contact page currently open; else the most recently viewed contact.
-- First name only → search contacts; if 1 strong match, use it silently; if 2+ strong matches, ask one line: "Rohan Mehta or Rohan Das?"
+- First name only → search contacts; if 1 strong match, use it silently; if 2+ strong matches, ask one line naming both full names so the user can pick.
 - "Thursday 4pm" → next occurrence in Asia/Kolkata; if that time passed today, next week.
 - "tomorrow morning" → 10:00 AM · "evening" → 6:00 PM · "afternoon" → 3:00 PM.
 - Meeting with no duration → 30 minutes. Meeting with no mode → call.

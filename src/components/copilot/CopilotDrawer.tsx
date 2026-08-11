@@ -29,9 +29,9 @@ interface Message {
 }
 
 const SAMPLE_PROMPTS = [
-  "Generate a modern tech logo for Sohlene Solutions",
-  "Add Rohan from Sohlene, +91 98765 43210, came from Instagram",
-  "Schedule a call with Rohan Thursday 4pm",
+  "What's due today?",
+  "Add a new lead from Instagram",
+  "Which leads have gone quiet?",
   "Generate a 3D render of a futuristic office workspace",
 ];
 

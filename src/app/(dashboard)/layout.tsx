@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -17,12 +17,12 @@ import {
   Sparkles,
   Check,
   Clock,
-  LogOut,
   Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ThemeToggle } from "../ThemeProvider";
 import { CopilotDrawer } from "@/components/copilot/CopilotDrawer";
+import { StorageWarningBanner } from "@/components/StorageWarningBanner";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -33,6 +33,108 @@ const NAV_ITEMS = [
   { label: "AI Copilot", href: "/ask", icon: Sparkles },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
+
+/** Sidebar widget showing the soonest open task, with a one-click complete. */
+function NextTaskWidget() {
+  const [task, setTask] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+  const pathname = usePathname();
+
+  const load = async () => {
+    try {
+      const res = await fetch("/api/tasks");
+      if (!res.ok) return;
+      const tasks = await res.json();
+      const open = (Array.isArray(tasks) ? tasks : [])
+        .filter((t: any) => t.status === "open")
+        .sort((a: any, b: any) => {
+          if (!a.due_at) return 1;
+          if (!b.due_at) return -1;
+          return new Date(a.due_at).getTime() - new Date(b.due_at).getTime();
+        });
+      setTask(open[0] || null);
+    } catch {
+      // Sidebar widget is non-critical — stay silent on failure.
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Refresh when navigating so the widget reflects edits made on other pages.
+  useEffect(() => {
+    load();
+  }, [pathname]);
+
+  const handleComplete = async () => {
+    if (!task) return;
+    const completed = task;
+    setTask(null);
+    try {
+      const res = await fetch(`/api/tasks/${completed.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: completed.status }),
+      });
+      if (res.ok) {
+        toast.success("Task completed! 🎉");
+        load();
+      } else {
+        toast.error("Failed to complete task");
+        setTask(completed);
+      }
+    } catch {
+      toast.error("Failed to complete task");
+      setTask(completed);
+    }
+  };
+
+  if (loading || !task) return null;
+
+  const due = task.due_at ? new Date(task.due_at) : null;
+  const isOverdue = due ? due.getTime() < Date.now() : false;
+
+  return (
+    <div
+      className="p-3.5 rounded-2xl space-y-2.5"
+      style={{ background: "#222234", border: "1px solid rgba(255,255,255,0.06)" }}
+    >
+      <div className="flex items-center justify-between text-[11px] font-medium">
+        <span className="flex items-center gap-1 text-slate-400">
+          <Clock className="w-3 h-3 text-[#7C6FF7]" /> Next Task
+        </span>
+        <span className={isOverdue ? "text-red-400" : "text-slate-400"}>
+          {due
+            ? due.toLocaleString(undefined, {
+                day: "numeric",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "No due date"}
+        </span>
+      </div>
+      <p className="text-xs font-semibold text-white truncate" title={task.title}>
+        {task.title}
+      </p>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={handleComplete}
+          className="flex-1 py-1.5 rounded-lg text-center text-[11px] font-bold text-white transition-opacity hover:opacity-90 flex items-center justify-center gap-1"
+          style={{ background: "#7C6FF7" }}
+        >
+          <Check className="w-3 h-3" /> Complete
+        </button>
+        <Link
+          href="/tasks"
+          className="px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-slate-300 hover:bg-white/10 no-underline flex items-center"
+        >
+          View all
+        </Link>
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardLayout({
   children,
@@ -181,37 +283,8 @@ export default function DashboardLayout({
 
         {/* Sidebar Footer — Reference Widget + Lock */}
         <div className="space-y-3 pt-4 border-t border-white/10">
-          {/* Quick Schedule Card (Reference image bottom widget) */}
-          <div
-            className="p-3.5 rounded-2xl space-y-2.5"
-            style={{ background: "#222234", border: "1px solid rgba(255,255,255,0.06)" }}
-          >
-            <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
-              <span className="flex items-center gap-1">
-                <Clock className="w-3 h-3 text-[#7C6FF7]" /> Next Task
-              </span>
-              <span>12:00 - 12:30</span>
-            </div>
-            <p className="text-xs font-semibold text-white truncate">
-              Follow up with new leads
-            </p>
-            <div className="flex gap-2">
-              <Link
-                href="/tasks"
-                className="flex-1 py-1.5 rounded-lg text-center text-[11px] font-bold text-white transition-opacity hover:opacity-90"
-                style={{ background: "#7C6FF7" }}
-              >
-                Complete
-              </Link>
-              <button
-                type="button"
-                onClick={() => toast.info("Reminder snoozed 30m")}
-                className="px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-slate-300 hover:bg-white/10"
-              >
-                Later
-              </button>
-            </div>
-          </div>
+          {/* Next open task — real data */}
+          <NextTaskWidget />
 
           <div className="flex items-center gap-2">
             <div className="flex-1">
@@ -239,6 +312,7 @@ export default function DashboardLayout({
 
       {/* Main Content */}
       <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full overflow-x-hidden relative">
+        <StorageWarningBanner />
         {children}
         <CopilotDrawer />
       </main>

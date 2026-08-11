@@ -265,6 +265,9 @@ export default async function DashboardPage() {
               <Link href="/tasks" className="text-xs font-medium" style={{ color: "var(--accent-text)" }}>View All</Link>
             </div>
             <div className="space-y-2">
+              {openTasks.length === 0 && (
+                <p className="text-xs py-4 text-center" style={{ color: "var(--text-muted)" }}>No open tasks.</p>
+              )}
               {openTasks.slice(0, 4).map((task) => (
                 <div key={task.id} className="flex items-center justify-between p-3 rounded-lg" style={{ background: "var(--bg-secondary)" }}>
                   <div className="flex items-center gap-2.5 min-w-0">

@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     groqFormData.append("file", file, file.name || "audio.webm");
     groqFormData.append("model", process.env.STT_MODEL || "whisper-large-v3-turbo");
     groqFormData.append("language", "en");
-    groqFormData.append("prompt", "Hinglish, names like Rahul, Priya, Sneha, Vikram, Aarav, Indian currency rupees INR");
+    groqFormData.append("prompt", "Hinglish speech, Indian personal and company names, Indian currency rupees INR");
 
     const groqRes = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
       method: "POST",

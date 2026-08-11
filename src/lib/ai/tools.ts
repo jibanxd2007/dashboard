@@ -22,7 +22,7 @@ export const aiTools: Record<string, any> = {
   searchContacts: tool({
     description: "Search CRM contacts by name, company, phone, tag, or email.",
     parameters: z.object({
-      query: z.string().describe("Search term (e.g., 'Rahul', 'Verma Tech', 'Shopify')"),
+      query: z.string().describe("Search term — a contact name, company, phone, email or tag."),
     }),
     execute: async ({ query }: any) => {
       const results = await searchContactsAction(query);

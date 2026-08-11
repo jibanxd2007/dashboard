@@ -30,3 +30,6 @@ next-env.d.ts
 # OS metadata
 .DS_Store
 *.pem
+
+# local agent transcripts
+/.claude-code-history/

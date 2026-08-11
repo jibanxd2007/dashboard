@@ -23,7 +23,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testingMsg, setTestingMsg] = useState(false);
-  const [tokenUsage, setTokenUsage] = useState({ totalInput: 4250, totalOutput: 1840 });
+  const [tokenUsage, setTokenUsage] = useState({ totalInput: 0, totalOutput: 0 });
 
   const fetchSettings = async () => {
     try {
@@ -37,8 +37,18 @@ export default function SettingsPage() {
     }
   };
 
+  const fetchTokenUsage = async () => {
+    try {
+      const res = await fetch("/api/ai/usage");
+      if (res.ok) setTokenUsage(await res.json());
+    } catch {
+      // Usage stats are non-critical — leave at zero.
+    }
+  };
+
   useEffect(() => {
     fetchSettings();
+    fetchTokenUsage();
   }, []);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -168,7 +178,7 @@ export default function SettingsPage() {
               </label>
               <input
                 type="text"
-                placeholder="XojF4J8haTSy"
+                placeholder="Paste your provider API key"
                 value={settings.callmebot_key || ""}
                 onChange={(e) => setSettings({ ...settings, callmebot_key: e.target.value })}
                 className="w-full rounded-lg px-3 py-2 text-xs font-mono focus:outline-none"
@@ -268,71 +278,15 @@ export default function SettingsPage() {
             <ShieldCheck className="w-5 h-5" style={{ color: "var(--accent-text)" }} />
             <div>
               <h4 className="text-xs font-medium" style={{ color: "var(--text-primary)" }}>App Access PIN</h4>
-              <p className="text-xs" style={{ color: "var(--text-muted)" }}>Current PIN: <span className="font-mono font-semibold" style={{ color: "var(--accent-text)" }}>123456</span></p>
+              <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                Set by the <span className="font-mono" style={{ color: "var(--accent-text)" }}>APP_ACCESS_PIN</span> environment variable. Change it there and redeploy.
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Demo Data Management & Going Live */}
-        <div className="card p-5 space-y-3 border" style={{ borderColor: "var(--red-light)", background: "var(--bg-secondary)" }}>
-          <h2 className="text-sm font-semibold flex items-center gap-2" style={{ color: "var(--text-primary)" }}>
-            <Lock className="w-4 h-4 text-red-400" /> Go Live Data Management
-          </h2>
-          <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-            Remove sample contacts (Rahul Verma, Priya Sharma), mock tasks, and meetings to start with a clean database for real clients.
-          </p>
-          <div className="flex flex-wrap items-center gap-3 pt-2">
-            <button
-              type="button"
-              onClick={async () => {
-                if (confirm("Are you sure you want to purge all demo contacts, tasks, and meetings?")) {
-                  try {
-                    const res = await fetch("/api/settings/reset", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ action: "clear" }),
-                    });
-                    if (res.ok) {
-                      toast.success("Demo showcase data purged! Your CRM is ready for live leads.");
-                      window.location.reload();
-                    }
-                  } catch (e) {
-                    toast.error("Failed to clear demo data");
-                  }
-                }
-              }}
-              className="px-3.5 py-2 rounded-lg text-xs font-semibold transition-all border"
-              style={{ background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", borderColor: "#ef4444" }}
-            >
-              Purge Demo Showcase Data
-            </button>
-
-            <button
-              type="button"
-              onClick={async () => {
-                if (confirm("Restore sample demo contacts and pipeline items?")) {
-                  try {
-                    const res = await fetch("/api/settings/reset", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ action: "seed" }),
-                    });
-                    if (res.ok) {
-                      toast.success("Demo showcase data restored!");
-                      window.location.reload();
-                    }
-                  } catch (e) {
-                    toast.error("Failed to restore demo data");
-                  }
-                }
-              }}
-              className="px-3.5 py-2 rounded-lg text-xs font-medium transition-all border"
-              style={{ borderColor: "var(--border-primary)", color: "var(--text-secondary)", background: "var(--bg-card)" }}
-            >
-              Restore Sample Showcase Data
-            </button>
-          </div>
-        </div>
+        {/* Danger Zone */}
+        <DangerZone />
 
         {/* Mobile App PWA Installation */}
         <PWAInstallPrompt />
@@ -352,6 +306,68 @@ export default function SettingsPage() {
           </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+function DangerZone() {
+  const [confirmText, setConfirmText] = useState("");
+  const [erasing, setErasing] = useState(false);
+
+  const handleErase = async () => {
+    setErasing(true);
+    try {
+      const res = await fetch("/api/settings/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "clear", confirm: "ERASE" }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success("All records erased.");
+        window.location.reload();
+      } else {
+        toast.error(data.error || "Failed to erase data");
+      }
+    } catch (e) {
+      toast.error("Failed to erase data");
+    } finally {
+      setErasing(false);
+    }
+  };
+
+  return (
+    <div className="card p-5 space-y-3 border" style={{ borderColor: "#ef4444", background: "var(--bg-secondary)" }}>
+      <h2 className="text-sm font-semibold flex items-center gap-2" style={{ color: "var(--text-primary)" }}>
+        <Lock className="w-4 h-4 text-red-400" /> Danger Zone
+      </h2>
+      <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+        Permanently delete every lead, task, meeting, activity and capture link. Your settings and
+        notification credentials are kept. This cannot be undone.
+      </p>
+      <div className="flex flex-wrap items-center gap-3 pt-2">
+        <input
+          type="text"
+          value={confirmText}
+          onChange={(e) => setConfirmText(e.target.value)}
+          placeholder="Type ERASE to confirm"
+          className="rounded-lg px-3 py-2 text-xs focus:outline-none"
+          style={{
+            background: "var(--bg-card)",
+            border: "1px solid var(--border-primary)",
+            color: "var(--text-primary)",
+          }}
+        />
+        <button
+          type="button"
+          disabled={confirmText !== "ERASE" || erasing}
+          onClick={handleErase}
+          className="px-3.5 py-2 rounded-lg text-xs font-semibold transition-all border disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{ background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", borderColor: "#ef4444" }}
+        >
+          {erasing ? "Erasing..." : "Erase All Data"}
+        </button>
+      </div>
     </div>
   );
 }

@@ -79,7 +79,7 @@ export default function PublicLeadCapturePage({ params }: { params: Promise<{ sl
               <input
                 type="text"
                 required
-                placeholder="Priya Sharma"
+                placeholder="Your full name"
                 value={formData.full_name}
                 onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                 className="w-full rounded-lg px-3.5 py-2 text-sm focus:outline-none"
@@ -105,7 +105,7 @@ export default function PublicLeadCapturePage({ params }: { params: Promise<{ sl
                 <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Company / Brand</label>
                 <input
                   type="text"
-                  placeholder="Sharma Studio"
+                  placeholder="Company or brand name"
                   value={formData.company}
                   onChange={(e) => setFormData({ ...formData, company: e.target.value })}
                   className="w-full rounded-lg px-3.5 py-2 text-sm focus:outline-none"
@@ -118,7 +118,7 @@ export default function PublicLeadCapturePage({ params }: { params: Promise<{ sl
               <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Email Address</label>
               <input
                 type="email"
-                placeholder="priya@sharmastudio.co"
+                placeholder="name@company.com"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="w-full rounded-lg px-3.5 py-2 text-sm focus:outline-none"

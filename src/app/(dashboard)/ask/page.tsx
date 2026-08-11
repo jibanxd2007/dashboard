@@ -22,10 +22,10 @@ interface Message {
 }
 
 const SAMPLE_PROMPTS = [
-  "Add Rohan from Sohlene, +91 98765 43210, came from Instagram",
   "What's due today?",
+  "Show me every lead I haven't contacted this week",
   "Move all leads older than 2 weeks with no reply to lost",
-  "Schedule a call with Priya Friday 4pm and remind me 30 minutes before",
+  "What's my total pipeline value by stage?",
 ];
 
 export default function FullAskPage() {

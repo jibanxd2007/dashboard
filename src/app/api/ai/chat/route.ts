@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
       model = google(process.env.AI_MODEL || "gemini-2.5-flash");
     }
 
-    const systemPrompt = generateSystemPrompt();
+    const systemPrompt = await generateSystemPrompt();
     const trimmedMessages = Array.isArray(messages) ? messages.slice(-12) : [];
 
     const result = streamText({

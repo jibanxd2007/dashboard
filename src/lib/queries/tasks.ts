@@ -1,20 +1,12 @@
-import { getSupabaseServerClient, isDatabaseConfigured } from "@/lib/supabase/server";
 import { mockDb, TaskItem } from "@/lib/mockStore";
-import { TaskPriority, TaskStatus } from "@/lib/database.types";
+import { TaskStatus } from "@/lib/database.types";
+import { withDb } from "@/lib/queries/db";
 
 export async function getTasks(): Promise<TaskItem[]> {
-  if (isDatabaseConfigured()) {
-    try {
-      const supabase: any = await getSupabaseServerClient();
-      const { data, error } = await supabase
-        .from("tasks")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (!error && data) return data as TaskItem[];
-    } catch (e) {
-      console.warn("Supabase query failed, falling back to mockDb:", e);
-    }
-  }
+  const { handled, data } = await withDb<TaskItem[]>((s) =>
+    s.from("tasks").select("*").order("created_at", { ascending: false })
+  );
+  if (handled) return data ?? [];
   return [...mockDb.tasks];
 }
 
@@ -22,20 +14,10 @@ export async function toggleTaskStatus(id: string, currentStatus: TaskStatus): P
   const newStatus: TaskStatus = currentStatus === "open" ? "done" : "open";
   const completed_at = newStatus === "done" ? new Date().toISOString() : null;
 
-  if (isDatabaseConfigured()) {
-    try {
-      const supabase: any = await getSupabaseServerClient();
-      const { data, error } = await supabase
-        .from("tasks")
-        .update({ status: newStatus, completed_at } as any)
-        .eq("id", id)
-        .select()
-        .single();
-      if (!error && data) return data as TaskItem;
-    } catch (e) {
-      console.warn("Supabase update failed, falling back to mockDb:", e);
-    }
-  }
+  const { handled, data } = await withDb<TaskItem>((s) =>
+    s.from("tasks").update({ status: newStatus, completed_at }).eq("id", id).select().maybeSingle()
+  );
+  if (handled) return data;
 
   const task = mockDb.tasks.find((t: TaskItem) => t.id === id);
   if (task) {
@@ -49,30 +31,45 @@ export async function toggleTaskStatus(id: string, currentStatus: TaskStatus): P
 export async function createTask(
   taskData: Omit<TaskItem, "id" | "created_at" | "completed_at" | "reminded_at">
 ): Promise<TaskItem> {
-  const now = new Date().toISOString();
-  const id = "t_" + crypto.randomUUID();
   const newTask: TaskItem = {
-    id,
+    id: crypto.randomUUID(),
     ...taskData,
     completed_at: null,
     reminded_at: null,
-    created_at: now,
+    created_at: new Date().toISOString(),
   };
 
-  if (isDatabaseConfigured()) {
-    try {
-      const supabase: any = await getSupabaseServerClient();
-      const { data, error } = await supabase
-        .from("tasks")
-        .insert(newTask as any)
-        .select()
-        .single();
-      if (!error && data) return data as TaskItem;
-    } catch (e) {
-      console.warn("Supabase insert failed, falling back to mockDb:", e);
-    }
-  }
+  const { handled, data } = await withDb<TaskItem>((s) =>
+    s.from("tasks").insert(newTask).select().single()
+  );
+  if (handled && data) return data;
 
   mockDb.tasks.unshift(newTask);
   return newTask;
+}
+
+export async function deleteTask(id: string): Promise<boolean> {
+  const { handled } = await withDb((s) => s.from("tasks").delete().eq("id", id));
+  if (handled) return true;
+
+  const initialLen = mockDb.tasks.length;
+  mockDb.tasks = mockDb.tasks.filter((t: TaskItem) => t.id !== id);
+  return mockDb.tasks.length < initialLen;
+}
+
+export async function updateTaskFields(
+  id: string,
+  fields: Partial<Omit<TaskItem, "id" | "created_at">>
+): Promise<TaskItem | null> {
+  const { handled, data } = await withDb<TaskItem>((s) =>
+    s.from("tasks").update(fields).eq("id", id).select().maybeSingle()
+  );
+  if (handled) return data;
+
+  const index = mockDb.tasks.findIndex((t: TaskItem) => t.id === id);
+  if (index !== -1) {
+    mockDb.tasks[index] = { ...mockDb.tasks[index], ...fields };
+    return mockDb.tasks[index];
+  }
+  return null;
 }

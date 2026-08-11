@@ -386,7 +386,7 @@ export default function LeadsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Full Name *</label>
-                  <input type="text" required value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} placeholder="Rahul Verma" className="w-full rounded-lg px-3 py-2 focus:outline-none" style={inputStyle} />
+                  <input type="text" required value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} placeholder="Full name" className="w-full rounded-lg px-3 py-2 focus:outline-none" style={inputStyle} />
                 </div>
                 <div>
                   <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Company</label>
@@ -423,7 +423,7 @@ export default function LeadsPage() {
               </div>
               <div>
                 <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Tags (comma-separated)</label>
-                <input type="text" value={formData.tags} onChange={(e) => setFormData({ ...formData, tags: e.target.value })} placeholder="Shopify, High Value" className="w-full rounded-lg px-3 py-2 focus:outline-none" style={inputStyle} />
+                <input type="text" value={formData.tags} onChange={(e) => setFormData({ ...formData, tags: e.target.value })} placeholder="Comma-separated tags" className="w-full rounded-lg px-3 py-2 focus:outline-none" style={inputStyle} />
               </div>
               <div className="pt-3 border-t flex items-center justify-end gap-2" style={{ borderColor: "var(--border-primary)" }}>
                 <button type="button" onClick={() => setIsAddModalOpen(false)} className="px-4 py-2 rounded-lg text-xs font-medium" style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>Cancel</button>

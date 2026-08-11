@@ -1,99 +1,43 @@
-import { getSupabaseServerClient, isDatabaseConfigured } from "@/lib/supabase/server";
 import { mockDb, ContactItem } from "@/lib/mockStore";
-import { ContactStage, ContactType, ContactSource } from "@/lib/database.types";
+import { ContactStage } from "@/lib/database.types";
+import { withDb } from "@/lib/queries/db";
 
 export async function getContacts(): Promise<ContactItem[]> {
-  if (isDatabaseConfigured()) {
-    try {
-      const supabase: any = await getSupabaseServerClient();
-      const { data, error } = await supabase
-        .from("contacts")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (!error && data) return data as ContactItem[];
-    } catch (e) {
-      console.warn("Supabase query failed, falling back to mockDb:", e);
-    }
-  }
+  const { handled, data } = await withDb<ContactItem[]>((s) =>
+    s.from("contacts").select("*").order("created_at", { ascending: false })
+  );
+  if (handled) return data ?? [];
   return [...mockDb.contacts].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 }
 
 export async function getContactById(id: string): Promise<ContactItem | null> {
-  if (isDatabaseConfigured()) {
-    try {
-      const supabase: any = await getSupabaseServerClient();
-      const { data, error } = await supabase
-        .from("contacts")
-        .select("*")
-        .eq("id", id)
-        .single();
-      if (!error && data) return data as ContactItem;
-    } catch (e) {
-      console.warn("Supabase query failed, falling back to mockDb:", e);
-    }
-  }
+  const { handled, data } = await withDb<ContactItem>((s) =>
+    s.from("contacts").select("*").eq("id", id).maybeSingle()
+  );
+  if (handled) return data;
   return mockDb.contacts.find((c: ContactItem) => c.id === id) || null;
 }
 
 export async function updateContactStage(id: string, stage: ContactStage): Promise<ContactItem | null> {
-  const updated_at = new Date().toISOString();
-  if (isDatabaseConfigured()) {
-    try {
-      const supabase: any = await getSupabaseServerClient();
-      const { data, error } = await supabase
-        .from("contacts")
-        .update({ stage, updated_at } as any)
-        .eq("id", id)
-        .select()
-        .single();
-      if (!error && data) return data as ContactItem;
-    } catch (e) {
-      console.warn("Supabase update failed, falling back to mockDb:", e);
-    }
-  }
-
-  const index = mockDb.contacts.findIndex((c: ContactItem) => c.id === id);
-  if (index !== -1) {
-    mockDb.contacts[index] = {
-      ...mockDb.contacts[index],
-      stage,
-      updated_at,
-    };
-    return mockDb.contacts[index];
-  }
-  return null;
+  return updateContactFields(id, { stage });
 }
 
 export async function updateContactFields(
   id: string,
   fields: Partial<Omit<ContactItem, "id" | "created_at">>
 ): Promise<ContactItem | null> {
-  const updated_at = new Date().toISOString();
-  const updatePayload = { ...fields, updated_at };
+  const updatePayload = { ...fields, updated_at: new Date().toISOString() };
 
-  if (isDatabaseConfigured()) {
-    try {
-      const supabase: any = await getSupabaseServerClient();
-      const { data, error } = await supabase
-        .from("contacts")
-        .update(updatePayload as any)
-        .eq("id", id)
-        .select()
-        .single();
-      if (!error && data) return data as ContactItem;
-    } catch (e) {
-      console.warn("Supabase update failed, falling back to mockDb:", e);
-    }
-  }
+  const { handled, data } = await withDb<ContactItem>((s) =>
+    s.from("contacts").update(updatePayload).eq("id", id).select().maybeSingle()
+  );
+  if (handled) return data;
 
   const index = mockDb.contacts.findIndex((c: ContactItem) => c.id === id);
   if (index !== -1) {
-    mockDb.contacts[index] = {
-      ...mockDb.contacts[index],
-      ...updatePayload,
-    };
+    mockDb.contacts[index] = { ...mockDb.contacts[index], ...updatePayload };
     return mockDb.contacts[index];
   }
   return null;
@@ -103,44 +47,47 @@ export async function createContact(
   contactData: Omit<ContactItem, "id" | "created_at" | "updated_at">
 ): Promise<ContactItem> {
   const now = new Date().toISOString();
-  const id = crypto.randomUUID();
   const newContact: ContactItem = {
-    id,
+    id: crypto.randomUUID(),
     ...contactData,
     created_at: now,
     updated_at: now,
   };
 
-  if (isDatabaseConfigured()) {
-    try {
-      const supabase: any = await getSupabaseServerClient();
-      const { data, error } = await supabase
-        .from("contacts")
-        .insert(newContact as any)
-        .select()
-        .single();
-      if (!error && data) return data as ContactItem;
-    } catch (e) {
-      console.warn("Supabase insert failed, falling back to mockDb:", e);
-    }
-  }
+  const { handled, data } = await withDb<ContactItem>((s) =>
+    s.from("contacts").insert(newContact).select().single()
+  );
+  if (handled && data) return data;
 
   mockDb.contacts.unshift(newContact);
   return newContact;
 }
 
 export async function deleteContact(id: string): Promise<boolean> {
-  if (isDatabaseConfigured()) {
-    try {
-      const supabase: any = await getSupabaseServerClient();
-      const { error } = await supabase.from("contacts").delete().eq("id", id);
-      if (!error) return true;
-    } catch (e) {
-      console.warn("Supabase delete failed, falling back to mockDb:", e);
-    }
-  }
+  const { handled } = await withDb((s) => s.from("contacts").delete().eq("id", id));
+  if (handled) return true;
 
   const initialLen = mockDb.contacts.length;
   mockDb.contacts = mockDb.contacts.filter((c: ContactItem) => c.id !== id);
   return mockDb.contacts.length < initialLen;
+}
+
+/** Moves every contact in one stage to another. Returns the number updated. */
+export async function bulkUpdateStage(fromStage: ContactStage, toStage: ContactStage): Promise<number> {
+  const updated_at = new Date().toISOString();
+
+  const { handled, data } = await withDb<ContactItem[]>((s) =>
+    s.from("contacts").update({ stage: toStage, updated_at }).eq("stage", fromStage).select()
+  );
+  if (handled) return data?.length ?? 0;
+
+  let count = 0;
+  for (const c of mockDb.contacts) {
+    if (c.stage === fromStage) {
+      c.stage = toStage;
+      c.updated_at = updated_at;
+      count++;
+    }
+  }
+  return count;
 }
