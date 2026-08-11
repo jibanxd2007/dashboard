@@ -33,3 +33,6 @@ next-env.d.ts
 
 # local agent transcripts
 /.claude-code-history/
+
+.vercel
+.env*

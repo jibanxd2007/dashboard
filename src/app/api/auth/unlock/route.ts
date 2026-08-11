@@ -1,11 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyPin, setAuthSession } from "@/lib/auth";
+import { verifyPin, setAuthSession, isPinConfigured } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
     const { pin } = await req.json();
     if (!pin || typeof pin !== "string") {
       return NextResponse.json({ success: false, message: "PIN is required" }, { status: 400 });
+    }
+
+    if (!isPinConfigured()) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "APP_ACCESS_PIN is not set on this deployment. Add it in your hosting environment settings, then redeploy.",
+        },
+        { status: 503 }
+      );
     }
 
     if (verifyPin(pin)) {
