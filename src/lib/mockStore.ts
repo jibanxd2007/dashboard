@@ -1,4 +1,4 @@
-import { ContactStage, ContactType, ContactSource, TaskPriority, TaskStatus, MeetingMode, MeetingStatus, ActivityType } from "@/lib/database.types";
+import { ContactStage, ContactType, ContactSource, TaskPriority, TaskStatus, MeetingMode, MeetingStatus, ActivityType, TeamRole, TeamMemberStatus } from "@/lib/database.types";
 
 export interface ContactItem {
   id: string;
@@ -108,6 +108,36 @@ export interface CaptureLinkItem {
   created_at: string;
 }
 
+export interface TeamMemberItem {
+  id: string;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+  role: TeamRole;
+  title: string | null;
+  status: TeamMemberStatus;
+  joined_at: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Internal meeting. Client-facing meetings live in MeetingItem. */
+export interface TeamMeetingItem {
+  id: string;
+  title: string;
+  starts_at: string;
+  ends_at: string;
+  mode: MeetingMode;
+  location_or_link: string | null;
+  agenda: string | null;
+  status: MeetingStatus;
+  attendee_ids: string[];
+  remind_minutes_before: number;
+  reminded_at: string | null;
+  created_at: string;
+}
+
 export interface AgentActionItem {
   id: string;
   tool: string;
@@ -158,6 +188,8 @@ class MemoryStore {
   activities: ActivityItem[] = [];
   settings: SettingsItem = { ...INITIAL_SETTINGS };
   captureLinks: CaptureLinkItem[] = [];
+  teamMembers: TeamMemberItem[] = [];
+  teamMeetings: TeamMeetingItem[] = [];
   notificationLog: Array<{ id: string; kind: string; dedupe_key: string; sent_at: string }> = [];
   aiThreads: AIThread[] = [];
   aiMessages: AIMessage[] = [];
@@ -171,6 +203,8 @@ class MemoryStore {
     this.meetings = [];
     this.activities = [];
     this.captureLinks = [];
+    this.teamMembers = [];
+    this.teamMeetings = [];
     this.notificationLog = [];
     this.aiThreads = [];
     this.aiMessages = [];

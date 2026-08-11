@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
+  UsersRound,
   CheckSquare,
   Calendar,
   Link2,
@@ -29,6 +30,7 @@ const NAV_ITEMS = [
   { label: "Leads & CRM", href: "/leads", icon: Users },
   { label: "Tasks", href: "/tasks", icon: CheckSquare },
   { label: "Meetings", href: "/meetings", icon: Calendar },
+  { label: "Team", href: "/team", icon: UsersRound },
   { label: "Capture Links", href: "/capture-links", icon: Link2 },
   { label: "AI Copilot", href: "/ask", icon: Sparkles },
   { label: "Settings", href: "/settings", icon: Settings },

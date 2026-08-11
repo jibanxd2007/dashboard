@@ -15,6 +15,8 @@ export type MeetingMode = 'call' | 'video' | 'in_person';
 export type MeetingStatus = 'scheduled' | 'completed' | 'cancelled';
 export type ActivityType = 'note' | 'call' | 'whatsapp' | 'email' | 'meeting' | 'stage_change' | 'created';
 export type NotificationKind = 'task_due' | 'meeting_soon' | 'new_lead' | 'daily_digest' | 'stale_lead';
+export type TeamRole = 'owner' | 'manager' | 'member';
+export type TeamMemberStatus = 'active' | 'inactive';
 
 export interface Database {
   public: {
@@ -269,6 +271,91 @@ export interface Database {
           notify_digest?: boolean
           created_at?: string
           updated_at?: string
+        }
+      }
+      team_members: {
+        Row: {
+          id: string
+          full_name: string
+          email: string | null
+          phone: string | null
+          role: TeamRole
+          title: string | null
+          status: TeamMemberStatus
+          joined_at: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          full_name: string
+          email?: string | null
+          phone?: string | null
+          role?: TeamRole
+          title?: string | null
+          status?: TeamMemberStatus
+          joined_at?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          full_name?: string
+          email?: string | null
+          phone?: string | null
+          role?: TeamRole
+          title?: string | null
+          status?: TeamMemberStatus
+          joined_at?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      team_meetings: {
+        Row: {
+          id: string
+          title: string
+          starts_at: string
+          ends_at: string
+          mode: MeetingMode
+          location_or_link: string | null
+          agenda: string | null
+          status: MeetingStatus
+          attendee_ids: string[]
+          remind_minutes_before: number
+          reminded_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          starts_at: string
+          ends_at: string
+          mode?: MeetingMode
+          location_or_link?: string | null
+          agenda?: string | null
+          status?: MeetingStatus
+          attendee_ids?: string[]
+          remind_minutes_before?: number
+          reminded_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          starts_at?: string
+          ends_at?: string
+          mode?: MeetingMode
+          location_or_link?: string | null
+          agenda?: string | null
+          status?: MeetingStatus
+          attendee_ids?: string[]
+          remind_minutes_before?: number
+          reminded_at?: string | null
+          created_at?: string
         }
       }
       capture_links: {
