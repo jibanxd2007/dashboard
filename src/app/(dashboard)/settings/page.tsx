@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { SettingsItem } from "@/lib/mockStore";
+import { ApkDownloadCard } from "@/components/ApkDownload";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Partial<SettingsItem>>({});
@@ -467,57 +468,10 @@ function PWAInstallPrompt() {
       </div>
 
       <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-        Install Sahoda CRM as a native app on your Android phone — no Play Store required. 
-        Just download the APK, tap to install, and you're live.
+        Install Sahoda CRM as an app on your phone or desktop — no Play Store required.
       </p>
 
-      {/* Android APK Download — main CTA */}
-      <a
-        href="/api/download/apk"
-        download="sahoda-crm.apk"
-        id="download-apk-btn"
-        className="flex items-center gap-4 p-4 rounded-2xl transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer no-underline"
-        style={{ background: "linear-gradient(135deg, #3DDC84 0%, #1fa856 100%)", boxShadow: "0 4px 24px rgba(61,220,132,0.3)" }}
-        onClick={() => toast.success("APK download started! Enable 'Install unknown apps' in Android settings if prompted.")}
-      >
-        {/* Robot icon */}
-        <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.2)" }}>
-          <svg viewBox="0 0 24 24" className="w-8 h-8" fill="white">
-            <path d="M17.6 11.48 19.44 8.3a.63.63 0 1 0-1.09-.64l-1.86 3.22A10.17 10.17 0 0 0 12 10a10.17 10.17 0 0 0-4.49 1l-1.86-3.2A.63.63 0 0 0 4.56 8.3l1.84 3.18A9.16 9.16 0 0 0 3 19h18a9.16 9.16 0 0 0-3.4-7.52zM7.5 17a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm9 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/>
-          </svg>
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="text-[11px] font-medium text-white/75 mb-0.5">Direct APK Download</div>
-          <div className="text-lg font-bold text-white leading-tight">Download for Android</div>
-          <div className="text-[11px] text-white/70 mt-0.5 flex items-center gap-1">
-            <span>sahoda-crm.apk</span>
-            <span>•</span>
-            <span>Supports Android 8.0+</span>
-          </div>
-        </div>
-
-        <div className="shrink-0 flex flex-col items-center gap-1">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.25)" }}>
-            <Download className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-[10px] text-white/80 font-medium">FREE</span>
-        </div>
-      </a>
-
-      {/* Install instructions for Android */}
-      <div className="rounded-xl p-3 space-y-2" style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-secondary)" }}>
-        <p className="text-[11px] font-semibold flex items-center gap-1.5" style={{ color: "var(--text-primary)" }}>
-          <span>📋</span> How to install the APK on Android:
-        </p>
-        <ol className="text-[11px] space-y-1.5 list-decimal list-inside" style={{ color: "var(--text-secondary)" }}>
-          <li>Tap <strong>Download for Android</strong> above</li>
-          <li>Open <strong>Downloads</strong> in your file manager</li>
-          <li>Tap <strong>sahoda-crm.apk</strong> → tap <strong>Install</strong></li>
-          <li>If blocked: Settings → <strong>Install unknown apps</strong> → Allow Chrome</li>
-          <li>Tap <strong>Open</strong> — you're live 🚀</li>
-        </ol>
-      </div>
+      <ApkDownloadCard />
 
       {/* Mac / Desktop divider */}
       <div className="border-t pt-3" style={{ borderColor: "var(--border-secondary)" }}>

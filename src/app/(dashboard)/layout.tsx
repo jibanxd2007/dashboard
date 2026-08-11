@@ -18,12 +18,12 @@ import {
   Sparkles,
   Check,
   Clock,
-  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ThemeToggle } from "../ThemeProvider";
 import { CopilotDrawer } from "@/components/copilot/CopilotDrawer";
 import { StorageWarningBanner } from "@/components/StorageWarningBanner";
+import { ApkDownloadLink } from "@/components/ApkDownload";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -175,15 +175,7 @@ export default function DashboardLayout({
           Sahoda<span style={{ color: "var(--accent)" }}>CRM</span>
         </Link>
         <div className="flex items-center gap-2">
-          <a
-            href="/api/download/apk"
-            download="sahoda-crm.apk"
-            className="px-3 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1.5"
-            style={{ background: "linear-gradient(135deg, #3DDC84 0%, #1fa856 100%)" }}
-            onClick={() => toast.success("APK download started!")}
-          >
-            <Download className="w-3.5 h-3.5" /> APK
-          </a>
+          <ApkDownloadLink variant="header" />
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-2 rounded-lg transition-colors text-slate-300 hover:text-white"
@@ -263,23 +255,8 @@ export default function DashboardLayout({
               );
             })}
 
-            {/* Direct APK Download Button in Navigation Bar */}
-            <a
-              href="/api/download/apk"
-              download="sahoda-crm.apk"
-              onClick={() => toast.success("Downloading Sahoda CRM APK...")}
-              className="flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-xs font-bold text-white transition-all hover:scale-[1.02] active:scale-[0.98] mt-3 no-underline shadow-lg"
-              style={{
-                background: "linear-gradient(135deg, #3DDC84 0%, #1fa856 100%)",
-                boxShadow: "0 4px 16px rgba(61, 220, 132, 0.25)",
-              }}
-            >
-              <Download className="w-4 h-4 text-white" />
-              <span>Download APK</span>
-              <span className="ml-auto text-[9px] bg-white/20 px-1.5 py-0.5 rounded font-mono text-white">
-                v1.0
-              </span>
-            </a>
+            {/* Only rendered when an APK has actually been built */}
+            <ApkDownloadLink variant="sidebar" onNavigate={() => setMobileMenuOpen(false)} />
           </nav>
         </div>
 

@@ -1,33 +1,44 @@
 import { NextResponse } from "next/server";
-import { readFile, stat } from "fs/promises";
-import path from "path";
+import { readFile } from "fs/promises";
+import { getApkInfo, getApkPath, APK_FILENAME } from "@/lib/apk";
+
+const notBuilt = () =>
+  NextResponse.json(
+    {
+      error: "APK not available",
+      message:
+        "No Android APK has been built for this deployment yet. Install the app from your browser instead (Chrome menu > Add to Home screen), or run the 'Build Android APK' GitHub Action to produce one.",
+    },
+    { status: 404 }
+  );
+
+/** Cheap availability probe so the UI can avoid offering a download that 404s. */
+export async function HEAD() {
+  const { available, sizeBytes } = await getApkInfo();
+  if (!available) return new NextResponse(null, { status: 404 });
+
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      "Content-Type": "application/vnd.android.package-archive",
+      "Content-Length": String(sizeBytes),
+    },
+  });
+}
 
 export async function GET() {
-  const apkPath = path.join(process.cwd(), "public", "sahoda-crm.apk");
+  const { available, sizeBytes } = await getApkInfo();
+  if (!available) return notBuilt();
 
-  try {
-    await stat(apkPath);
-    const file = await readFile(apkPath);
+  const file = await readFile(getApkPath());
 
-    return new NextResponse(file, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/vnd.android.package-archive",
-        "Content-Disposition": 'attachment; filename="sahoda-crm.apk"',
-        "Content-Length": file.byteLength.toString(),
-        "Cache-Control": "public, max-age=86400",
-      },
-    });
-  } catch {
-    // APK not built yet — return 404 with helpful JSON
-    return NextResponse.json(
-      {
-        error: "APK not yet built",
-        message:
-          "The Android APK has not been compiled yet. Run `npm run build:apk` to generate it.",
-        docs: "See README.md → Android APK Build for instructions.",
-      },
-      { status: 404 }
-    );
-  }
+  return new NextResponse(new Uint8Array(file), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/vnd.android.package-archive",
+      "Content-Disposition": `attachment; filename="${APK_FILENAME}"`,
+      "Content-Length": String(sizeBytes),
+      "Cache-Control": "public, max-age=86400",
+    },
+  });
 }

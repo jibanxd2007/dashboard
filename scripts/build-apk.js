@@ -32,6 +32,18 @@ function run(cmd, cwd = ROOT) {
 function checkPrerequisites() {
   console.log("🔍 Checking prerequisites...");
 
+  // The APK loads the deployed site, so a localhost URL produces an APK that
+  // opens blank on a real phone. Catch that here rather than after a long build.
+  const serverUrl = process.env.CAPACITOR_SERVER_URL;
+  if (!serverUrl) {
+    console.error("  ✗ CAPACITOR_SERVER_URL is not set.");
+    console.error("    The APK loads your deployed site, so it needs a public URL:");
+    console.error("      CAPACITOR_SERVER_URL=https://your-app.vercel.app npm run build:apk");
+    console.error("    Prefer the 'Build Android APK' GitHub Action if you have no Android SDK.");
+    process.exit(1);
+  }
+  console.log(`  ✓ Server URL: ${serverUrl}`);
+
   // Check Java
   try {
     execSync("java -version", { stdio: "pipe" });
