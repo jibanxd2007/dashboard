@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Users,
   Plus,
@@ -37,15 +37,31 @@ const emptyMemberForm = {
   notes: "",
 };
 
-const emptyMeetingForm = {
+/** datetime-local wants "YYYY-MM-DDTHH:mm" in local time. */
+function toLocalInput(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+/** Next whole hour, 30 minutes long — so the time fields are never blank. */
+function defaultSlot() {
+  const start = new Date();
+  start.setMinutes(0, 0, 0);
+  start.setHours(start.getHours() + 1);
+  return {
+    starts_at: toLocalInput(start),
+    ends_at: toLocalInput(new Date(start.getTime() + 30 * 60000)),
+  };
+}
+
+const emptyMeetingForm = () => ({
   title: "",
-  starts_at: "",
-  ends_at: "",
+  ...defaultSlot(),
   mode: "video" as MeetingMode,
   location_or_link: "",
   agenda: "",
   attendee_ids: [] as string[],
-};
+});
 
 const initials = (name: string) =>
   name
@@ -66,8 +82,42 @@ export default function TeamPage() {
   const [memberForm, setMemberForm] = useState(emptyMemberForm);
 
   const [meetingModal, setMeetingModal] = useState(false);
-  const [meetingForm, setMeetingForm] = useState(emptyMeetingForm);
+  const [meetingForm, setMeetingForm] = useState(emptyMeetingForm());
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  /**
+   * Both dialogs scroll, so a field failing validation is often above the fold.
+   * Bring it into view and focus it, otherwise the submit looks like it did
+   * nothing at all.
+   */
+  const revealFirstError = (found: Record<string, string>) => {
+    const first = Object.keys(found)[0];
+    if (!first) return;
+    const el = document.querySelector<HTMLElement>(`[data-field="${first}"]`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    el?.focus({ preventScroll: true });
+  };
+
+  const validateMember = (form: typeof emptyMemberForm) => {
+    const next: Record<string, string> = {};
+    if (!form.full_name.trim()) next.full_name = "Name is required.";
+    if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      next.email = "That does not look like an email address.";
+    }
+    return next;
+  };
+
+  const validateMeeting = (form: ReturnType<typeof emptyMeetingForm>) => {
+    const next: Record<string, string> = {};
+    if (!form.title.trim()) next.title = "Give the meeting a title.";
+    if (!form.starts_at) next.starts_at = "Pick a start time.";
+    if (!form.ends_at) next.ends_at = "Pick an end time.";
+    if (form.starts_at && form.ends_at && new Date(form.ends_at) <= new Date(form.starts_at)) {
+      next.ends_at = "End time must be after the start time.";
+    }
+    return next;
+  };
 
   const fetchData = async () => {
     try {
@@ -88,14 +138,39 @@ export default function TeamPage() {
     fetchData();
   }, []);
 
+  /** Backdrop click and Escape both close, unless a save is in flight. */
+  const closeDialogs = useCallback(() => {
+    if (saving) return;
+    setMemberModal(false);
+    setMeetingModal(false);
+    setErrors({});
+  }, [saving]);
+
+  useEffect(() => {
+    if (!memberModal && !meetingModal) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeDialogs();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [memberModal, meetingModal, closeDialogs]);
+
   const openNewMember = () => {
     setEditingId(null);
     setMemberForm(emptyMemberForm);
+    setErrors({});
     setMemberModal(true);
+  };
+
+  const openNewMeeting = () => {
+    setMeetingForm(emptyMeetingForm());
+    setErrors({});
+    setMeetingModal(true);
   };
 
   const openEditMember = (m: TeamMemberItem) => {
     setEditingId(m.id);
+    setErrors({});
     setMemberForm({
       full_name: m.full_name,
       title: m.title || "",
@@ -110,8 +185,13 @@ export default function TeamPage() {
 
   const handleSaveMember = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!memberForm.full_name.trim()) {
-      toast.error("Name is required");
+    if (saving) return;
+
+    const found = validateMember(memberForm);
+    setErrors(found);
+    if (Object.keys(found).length > 0) {
+      toast.error(found[Object.keys(found)[0]]);
+      revealFirstError(found);
       return;
     }
     setSaving(true);
@@ -157,8 +237,13 @@ export default function TeamPage() {
 
   const handleCreateMeeting = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!meetingForm.title || !meetingForm.starts_at || !meetingForm.ends_at) {
-      toast.error("Title, start and end time are required");
+    if (saving) return;
+
+    const found = validateMeeting(meetingForm);
+    setErrors(found);
+    if (Object.keys(found).length > 0) {
+      toast.error(found[Object.keys(found)[0]]);
+      revealFirstError(found);
       return;
     }
     setSaving(true);
@@ -172,7 +257,7 @@ export default function TeamPage() {
       if (res.ok) {
         toast.success("Team meeting scheduled");
         setMeetingModal(false);
-        setMeetingForm(emptyMeetingForm);
+        setMeetingForm(emptyMeetingForm());
         fetchData();
       } else {
         toast.error(data.error || "Failed to schedule meeting");
@@ -218,6 +303,13 @@ export default function TeamPage() {
     border: "1px solid var(--border-primary)",
     color: "var(--text-primary)",
   };
+  const errStyle = { ...inputStyle, border: "1px solid #ef4444" };
+  const fieldError = (key: string) =>
+    errors[key] ? (
+      <p className="text-[11px] mt-1" style={{ color: "#ef4444" }}>
+        {errors[key]}
+      </p>
+    ) : null;
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -229,7 +321,7 @@ export default function TeamPage() {
           </p>
         </div>
         <button
-          onClick={() => (tab === "members" ? openNewMember() : setMeetingModal(true))}
+          onClick={() => (tab === "members" ? openNewMember() : openNewMeeting())}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           style={{ background: "var(--accent)", color: "var(--text-inverse)" }}
         >
@@ -496,12 +588,12 @@ export default function TeamPage() {
 
       {/* Member modal */}
       {memberModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "var(--bg-modal-overlay)" }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "var(--bg-modal-overlay)" }} onClick={closeDialogs}>
           <div
-            className="w-full max-w-lg p-6 rounded-xl border space-y-4 animate-fade-in max-h-[90vh] overflow-y-auto"
+            role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()} className="w-full max-w-lg p-6 rounded-xl border space-y-4 animate-fade-in max-h-[90vh] overflow-y-auto"
             style={{ background: "var(--bg-card)", borderColor: "var(--border-primary)", boxShadow: "var(--shadow-lg)" }}
           >
-            <div className="flex items-center justify-between pb-3 border-b" style={{ borderColor: "var(--border-primary)" }}>
+            <div className="flex items-center justify-between pb-3 border-b sticky top-0 z-10 -mt-6 pt-6" style={{ borderColor: "var(--border-primary)", background: "var(--bg-card)" }}>
               <h3 className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
                 {editingId ? "Edit Member" : "Add Team Member"}
               </h3>
@@ -510,18 +602,21 @@ export default function TeamPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSaveMember} className="space-y-3 text-sm">
+            <form onSubmit={handleSaveMember} className="space-y-3 text-sm" noValidate>
               <div>
                 <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Full Name *</label>
                 <input
                   type="text"
-                  required
+                  data-field="full_name"
+                  aria-invalid={Boolean(errors.full_name)}
                   value={memberForm.full_name}
                   onChange={(e) => setMemberForm({ ...memberForm, full_name: e.target.value })}
+                  onBlur={() => setErrors(validateMember(memberForm))}
                   placeholder="Full name"
                   className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
-                  style={inputStyle}
+                  style={errors.full_name ? errStyle : inputStyle}
                 />
+                {fieldError("full_name")}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -556,12 +651,16 @@ export default function TeamPage() {
                   <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Email</label>
                   <input
                     type="email"
+                    data-field="email"
+                    aria-invalid={Boolean(errors.email)}
                     value={memberForm.email}
                     onChange={(e) => setMemberForm({ ...memberForm, email: e.target.value })}
+                    onBlur={() => setErrors(validateMember(memberForm))}
                     placeholder="name@company.com"
                     className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
-                    style={inputStyle}
+                    style={errors.email ? errStyle : inputStyle}
                   />
+                  {fieldError("email")}
                 </div>
                 <div>
                   <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Phone</label>
@@ -625,54 +724,67 @@ export default function TeamPage() {
 
       {/* Meeting modal */}
       {meetingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "var(--bg-modal-overlay)" }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "var(--bg-modal-overlay)" }} onClick={closeDialogs}>
           <div
-            className="w-full max-w-lg p-6 rounded-xl border space-y-4 animate-fade-in max-h-[90vh] overflow-y-auto"
+            role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()} className="w-full max-w-lg p-6 rounded-xl border space-y-4 animate-fade-in max-h-[90vh] overflow-y-auto"
             style={{ background: "var(--bg-card)", borderColor: "var(--border-primary)", boxShadow: "var(--shadow-lg)" }}
           >
-            <div className="flex items-center justify-between pb-3 border-b" style={{ borderColor: "var(--border-primary)" }}>
+            <div className="flex items-center justify-between pb-3 border-b sticky top-0 z-10 -mt-6 pt-6" style={{ borderColor: "var(--border-primary)", background: "var(--bg-card)" }}>
               <h3 className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>Schedule Team Meeting</h3>
               <button onClick={() => setMeetingModal(false)} style={{ color: "var(--text-muted)" }}>
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateMeeting} className="space-y-3 text-sm">
+            <form onSubmit={handleCreateMeeting} className="space-y-3 text-sm" noValidate>
               <div>
                 <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Meeting Title *</label>
                 <input
                   type="text"
-                  required
+                  data-field="title"
+                  aria-invalid={Boolean(errors.title)}
                   value={meetingForm.title}
                   onChange={(e) => setMeetingForm({ ...meetingForm, title: e.target.value })}
+                  onBlur={() => setErrors(validateMeeting(meetingForm))}
                   placeholder="e.g. Weekly standup"
                   className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
-                  style={inputStyle}
+                  style={errors.title ? errStyle : inputStyle}
                 />
+                {fieldError("title")}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Starts At *</label>
+                  <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
+                    Starts At * <span style={{ color: "var(--text-muted)" }}>(IST)</span>
+                  </label>
                   <input
                     type="datetime-local"
-                    required
+                    data-field="starts_at"
+                    aria-invalid={Boolean(errors.starts_at)}
                     value={meetingForm.starts_at}
                     onChange={(e) => setMeetingForm({ ...meetingForm, starts_at: e.target.value })}
+                    onBlur={() => setErrors(validateMeeting(meetingForm))}
                     className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
-                    style={inputStyle}
+                    style={errors.starts_at ? errStyle : inputStyle}
                   />
+                  {fieldError("starts_at")}
                 </div>
                 <div>
-                  <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Ends At *</label>
+                  <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
+                    Ends At * <span style={{ color: "var(--text-muted)" }}>(IST)</span>
+                  </label>
                   <input
                     type="datetime-local"
-                    required
+                    data-field="ends_at"
+                    aria-invalid={Boolean(errors.ends_at)}
                     value={meetingForm.ends_at}
                     onChange={(e) => setMeetingForm({ ...meetingForm, ends_at: e.target.value })}
+                    onBlur={() => setErrors(validateMeeting(meetingForm))}
                     className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
-                    style={inputStyle}
+                    style={errors.ends_at ? errStyle : inputStyle}
                   />
+                  {fieldError("ends_at")}
                 </div>
               </div>
 
