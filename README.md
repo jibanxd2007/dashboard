@@ -80,6 +80,51 @@ STT_MODEL=whisper-large-v3-turbo
 
 ---
 
+## 📧 Email setup (Resend)
+
+Two channels, two audiences, enforced in `lib/notify/channels.ts`:
+
+| Channel | Reaches | Used for |
+|---|---|---|
+| WhatsApp (`notifyOwner`) | **You only** | Your meetings and tasks, deliverables due, new leads, morning digest |
+| Email (`sendEmail`) | Clients, leads, team | Meeting invites, reminders, task assignments, deliverable nudges |
+
+`notifyOwner()` takes no recipient argument, so no code path can WhatsApp a client.
+Nothing outside `channels.ts` may import Resend or call a WhatsApp URL directly.
+
+### You must verify a domain before emailing clients
+
+**Until you verify a sending domain, Resend only delivers to the email address
+your Resend account was registered with.** Sending to a client will return a 403
+and be recorded in `email_log` as failed. This catches everyone out — verify the
+domain before you rely on invites reaching anyone.
+
+Verification is free and takes about 10 minutes:
+
+1. Go to **resend.com → Domains → Add Domain**, enter the domain you send from
+   (e.g. `sahodalabs.com`).
+2. Resend shows three DNS records. Add them at your registrar (GoDaddy,
+   Namecheap, Cloudflare, wherever the domain is):
+   - **SPF** — a `TXT` record on `send.yourdomain.com` containing
+     `v=spf1 include:amazonses.com ~all`
+   - **DKIM** — a `TXT` record on `resend._domainkey` with the long public key
+     Resend gives you
+   - **DMARC** — a `TXT` record on `_dmarc` with `v=DMARC1; p=none;`
+3. Click **Verify**. DNS usually propagates in a few minutes, sometimes up to an
+   hour.
+4. Set `EMAIL_FROM` to an address at that domain, e.g.
+   `EMAIL_FROM="Karunesh — Sahoda Labs <hello@sahodalabs.com>"`.
+
+Until then, leave `EMAIL_FROM` as `onboarding@resend.dev` and expect delivery
+only to your own registered address.
+
+### Turning email off
+
+Set `EMAIL_ENABLED=false` (or leave `RESEND_API_KEY` empty). Every email path
+then logs the full message to the console and records a `skipped` row in
+`email_log`. Nothing throws, nothing is silently dropped, and the UI shows
+"Email is off" with the reason.
+
 ## 🚀 Running Locally
 
 ```bash

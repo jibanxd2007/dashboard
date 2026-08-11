@@ -11,6 +11,14 @@ export async function getMeetings(): Promise<MeetingItem[]> {
   );
 }
 
+export async function getMeetingById(id: string): Promise<MeetingItem | null> {
+  const { handled, data } = await withDb<MeetingItem>((s) =>
+    s.from("meetings").select("*").eq("id", id).maybeSingle()
+  );
+  if (handled) return data;
+  return mockDb.meetings.find((m) => m.id === id) || null;
+}
+
 export async function createMeeting(
   meetingData: Omit<MeetingItem, "id" | "created_at" | "reminded_at">
 ): Promise<MeetingItem> {
@@ -30,11 +38,28 @@ export async function createMeeting(
   return newMeeting;
 }
 
+export async function updateMeeting(
+  id: string,
+  fields: Partial<Omit<MeetingItem, "id" | "created_at">>
+): Promise<MeetingItem | null> {
+  const { handled, data } = await withDb<MeetingItem>((s) =>
+    s.from("meetings").update(fields).eq("id", id).select().maybeSingle()
+  );
+  if (handled) return data;
+
+  const index = mockDb.meetings.findIndex((m) => m.id === id);
+  if (index !== -1) {
+    mockDb.meetings[index] = { ...mockDb.meetings[index], ...fields };
+    return mockDb.meetings[index];
+  }
+  return null;
+}
+
 export async function deleteMeeting(id: string): Promise<boolean> {
   const { handled } = await withDb((s) => s.from("meetings").delete().eq("id", id));
   if (handled) return true;
 
   const initialLen = mockDb.meetings.length;
-  mockDb.meetings = mockDb.meetings.filter((m: MeetingItem) => m.id !== id);
+  mockDb.meetings = mockDb.meetings.filter((m) => m.id !== id);
   return mockDb.meetings.length < initialLen;
 }

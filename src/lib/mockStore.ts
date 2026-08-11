@@ -35,6 +35,8 @@ export interface TaskItem {
   created_at: string;
 }
 
+export type AttendeeReminder = "none" | "day" | "hour" | "both";
+
 export interface MeetingItem {
   id: string;
   contact_id: string;
@@ -48,6 +50,13 @@ export interface MeetingItem {
   remind_minutes_before: number;
   reminded_at: string | null;
   created_at: string;
+  /** Pasted Meet/Zoom URL. Distinct from location_or_link for in-person venues. */
+  meeting_link?: string | null;
+  additional_recipients?: string[];
+  invite_sent_at?: string | null;
+  /** Bumped on every edit so calendars amend rather than duplicate. */
+  invite_sequence?: number;
+  attendee_reminder?: AttendeeReminder;
 }
 
 export interface ActivityItem {
@@ -138,6 +147,65 @@ export interface TeamMeetingItem {
   created_at: string;
 }
 
+export type DeliverableType = "design" | "development" | "content" | "campaign" | "report" | "other";
+export type DeliverableStatus =
+  | "not_started"
+  | "in_progress"
+  | "in_review"
+  | "blocked"
+  | "delivered"
+  | "approved";
+
+export interface DeliverableItem {
+  id: string;
+  client_id: string;
+  title: string;
+  description: string | null;
+  type: DeliverableType;
+  status: DeliverableStatus;
+  priority: TaskPriority;
+  due_at: string | null;
+  owner_id: string | null;
+  value: number | null;
+  /** Hours before due_at at which to remind. */
+  remind_offsets: number[];
+  blocked_reason: string | null;
+  blocked_since: string | null;
+  delivered_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DeliverableChecklistItem {
+  id: string;
+  deliverable_id: string;
+  label: string;
+  done: boolean;
+  position: number;
+  created_at: string;
+}
+
+export interface ClientLinkItem {
+  id: string;
+  client_id: string;
+  label: string;
+  url: string;
+  created_at: string;
+}
+
+export interface EmailLogItem {
+  id: string;
+  to_email: string;
+  template: string;
+  subject: string;
+  ref_id: string | null;
+  dedupe_key: string;
+  status: string;
+  provider_id: string | null;
+  error: string | null;
+  sent_at: string;
+}
+
 export interface AgentActionItem {
   id: string;
   tool: string;
@@ -190,6 +258,10 @@ class MemoryStore {
   captureLinks: CaptureLinkItem[] = [];
   teamMembers: TeamMemberItem[] = [];
   teamMeetings: TeamMeetingItem[] = [];
+  deliverables: DeliverableItem[] = [];
+  deliverableItems: DeliverableChecklistItem[] = [];
+  clientLinks: ClientLinkItem[] = [];
+  emailLog: EmailLogItem[] = [];
   notificationLog: Array<{ id: string; kind: string; dedupe_key: string; sent_at: string }> = [];
   aiThreads: AIThread[] = [];
   aiMessages: AIMessage[] = [];
@@ -205,6 +277,10 @@ class MemoryStore {
     this.captureLinks = [];
     this.teamMembers = [];
     this.teamMeetings = [];
+    this.deliverables = [];
+    this.deliverableItems = [];
+    this.clientLinks = [];
+    this.emailLog = [];
     this.notificationLog = [];
     this.aiThreads = [];
     this.aiMessages = [];
@@ -213,7 +289,8 @@ class MemoryStore {
   }
 }
 
-const globalStore = (globalThis as any).__crm_memory_store__ || new MemoryStore();
+const globalStore: MemoryStore =
+  (globalThis as any).__crm_memory_store__ || new MemoryStore();
 (globalThis as any).__crm_memory_store__ = globalStore;
 
-export const mockDb = globalStore;
+export const mockDb: MemoryStore = globalStore;
