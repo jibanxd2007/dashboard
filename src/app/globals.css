@@ -143,6 +143,90 @@
 ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 
 /* ======================================================
+   STACKING ORDER — the one place layering is decided.
+   Everything that floats reads from this scale; nothing
+   should use a bare z-50 or an arbitrary number.
+   ====================================================== */
+:root {
+  --z-sidebar:   100;  /* fixed nav, mobile drawer      */
+  --z-backdrop:  200;  /* dim behind any overlay        */
+  --z-dialog:    210;  /* modals and sheets             */
+  --z-dropdown:  300;  /* selects, menus inside dialogs */
+  --z-popover:   310;
+  --z-copilot:   400;  /* floating AI panel             */
+  --z-toast:     500;  /* always the topmost feedback   */
+}
+
+/* ======================================================
+   NATIVE CONTROLS — selects and date inputs ship with
+   the OS rendering, which ignores the app palette and
+   looks wrong in dark mode. Normalise both themes.
+   ====================================================== */
+select,
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  color-scheme: light;
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2rem;
+}
+
+/*
+ * These fields carry an inline `background` shorthand from the page styles,
+ * and the shorthand resets background-image — which erased the chevron and
+ * left the selects with no dropdown indicator at all once appearance:none
+ * removed the native one. !important is what survives an inline shorthand.
+ */
+select {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.6rem center !important;
+}
+
+/* Date inputs keep their own picker button, so no chevron. */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  background-image: none;
+  padding-right: 0.75rem;
+}
+
+/* The app switches themes with a .dark class on <html>. */
+.dark select,
+.dark input[type="date"],
+.dark input[type="time"],
+.dark input[type="datetime-local"] {
+  /* Makes the native calendar popup and its icon render dark. */
+  color-scheme: dark;
+}
+
+/* Chevron needs to lighten in dark mode or it disappears into the field. */
+.dark select {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239CA3AF' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+}
+
+/* The option list is drawn by the OS; these are the only
+   properties it reliably honours. */
+select option {
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+}
+
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+button:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ======================================================
    CARD — white surface, soft purple shadow
    ====================================================== */
 .card {

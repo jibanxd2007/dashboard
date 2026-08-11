@@ -38,10 +38,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     document.documentElement.classList.toggle("dark", next === "dark");
   };
 
-  // Prevent flash by not rendering until mounted
-  if (!mounted) {
-    return <div style={{ visibility: "hidden" }}>{children}</div>;
-  }
+  // The pre-paint script in the root layout already applied the right class,
+  // so there is nothing to hide here — blanking the tree caused its own flash.
+  void mounted;
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>

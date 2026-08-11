@@ -1,23 +1,31 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 /**
- * Modal shell with a three-part layout: a header and footer that stay put and
- * a body that scrolls between them.
+ * The single modal shell for the app.
  *
- * The previous dialogs made the whole panel one scrolling box, so on a short
- * viewport the first field scrolled out of reach behind the header — and a
- * validation error on it was invisible. Here the panel is a flex column with a
- * fixed max height; only the middle section moves, so the title field and the
- * action buttons are always on screen.
+ * Three regions: a sticky header, a body that is the only scrolling part, and
+ * a sticky footer for the actions. The panel is capped at 85dvh and centred
+ * with flex — not a negative-margin transform, which is what pushed the top of
+ * a tall dialog above the viewport where the title and close button could not
+ * be reached.
  *
- * Uses dvh so mobile browser chrome does not eat the footer.
+ * dvh rather than vh: mobile browser chrome changes the viewport height, and
+ * vh keeps measuring the tallest state, so the footer ends up under the
+ * address bar.
+ *
+ * Under 640px it renders as a full-screen sheet with safe-area padding so the
+ * action row clears the home indicator.
+ *
+ * Layering comes from the scale in globals.css; nothing here hardcodes a z.
  */
 export function Dialog({
   open,
   title,
+  description,
   onClose,
   onSubmit,
   footer,
@@ -26,6 +34,7 @@ export function Dialog({
 }: {
   open: boolean;
   title: string;
+  description?: string;
   onClose: () => void;
   onSubmit?: (e: React.FormEvent) => void;
   footer?: React.ReactNode;
@@ -33,29 +42,49 @@ export function Dialog({
   busy?: boolean;
 }) {
   const panelRef = useRef<HTMLDivElement | null>(null);
-  const previouslyFocused = useRef<HTMLElement | null>(null);
+  const restoreFocusTo = useRef<HTMLElement | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!open) return;
-    previouslyFocused.current = document.activeElement as HTMLElement;
+
+    restoreFocusTo.current = document.activeElement as HTMLElement;
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !busy) onClose();
+      if (e.key === "Escape" && !busy) {
+        e.stopPropagation();
+        onClose();
+      }
     };
     window.addEventListener("keydown", onKey);
 
-    // Stop the page behind the dialog scrolling with it.
-    const prevOverflow = document.body.style.overflow;
+    // Lock the page behind the dialog without losing the reading position:
+    // position:fixed would jump to the top, so only overflow is touched.
+    // Both elements are set because which one scrolls varies by browser.
+    const scrollY = window.scrollY;
+    const prevBody = document.body.style.overflow;
+    const prevRoot = document.documentElement.style.overflow;
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    // Focus the first control so keyboard users land inside the dialog.
+    const firstField = panelRef.current?.querySelector<HTMLElement>(
+      "input:not([type=hidden]), select, textarea, button"
+    );
+    firstField?.focus({ preventScroll: true });
 
     return () => {
       window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
-      previouslyFocused.current?.focus?.();
+      document.body.style.overflow = prevBody;
+      document.documentElement.style.overflow = prevRoot;
+      window.scrollTo({ top: scrollY });
+      restoreFocusTo.current?.focus?.();
     };
   }, [open, busy, onClose]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
   const body = (
     <>
@@ -63,7 +92,11 @@ export function Dialog({
       {footer && (
         <div
           className="shrink-0 border-t px-5 py-3 flex items-center justify-end gap-2"
-          style={{ borderColor: "var(--border-primary)" }}
+          style={{
+            borderColor: "var(--border-primary)",
+            background: "var(--bg-card)",
+            paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))",
+          }}
         >
           {footer}
         </div>
@@ -71,10 +104,20 @@ export function Dialog({
     </>
   );
 
-  return (
+  /*
+   * Rendered into document.body rather than in place.
+   *
+   * Page wrappers use animate-fade-in, and its forwards fill-mode leaves a
+   * transform on the element for good. A transformed ancestor becomes the
+   * containing block for position:fixed, so `inset-0` resolved to the page
+   * content box instead of the viewport and the dialog was centred against
+   * the wrong rectangle — measured 122px above the top of the screen with the
+   * header unreachable. A portal escapes every such ancestor.
+   */
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
-      style={{ background: "var(--bg-modal-overlay)" }}
+      className="fixed inset-0 flex items-stretch sm:items-center justify-center sm:p-4"
+      style={{ zIndex: "var(--z-backdrop)" as any, background: "var(--bg-modal-overlay)" }}
       onClick={() => !busy && onClose()}
     >
       <div
@@ -83,26 +126,39 @@ export function Dialog({
         aria-modal="true"
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
-        className="w-full sm:max-w-lg flex flex-col rounded-t-2xl sm:rounded-xl border animate-fade-in max-h-[92dvh] sm:max-h-[88dvh]"
+        className={
+          // Full-screen sheet on phones, centred capped panel from sm up.
+          "relative w-full flex flex-col border animate-fade-in " +
+          "h-[100dvh] rounded-none " +
+          "sm:h-auto sm:max-h-[85dvh] sm:max-w-lg sm:rounded-xl"
+        }
         style={{
+          zIndex: "var(--z-dialog)" as any,
           background: "var(--bg-card)",
           borderColor: "var(--border-primary)",
           boxShadow: "var(--shadow-lg)",
         }}
       >
         <div
-          className="shrink-0 flex items-center justify-between px-5 py-4 border-b"
-          style={{ borderColor: "var(--border-primary)" }}
+          className="shrink-0 flex items-start justify-between gap-3 px-5 py-4 border-b"
+          style={{ borderColor: "var(--border-primary)", background: "var(--bg-card)" }}
         >
-          <h3 className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
-            {title}
-          </h3>
+          <div className="min-w-0">
+            <h3 className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
+              {title}
+            </h3>
+            {description && (
+              <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+                {description}
+              </p>
+            )}
+          </div>
           <button
             type="button"
             onClick={onClose}
             disabled={busy}
             aria-label="Close dialog"
-            className="p-2 -mr-2 rounded-lg disabled:opacity-40 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="shrink-0 -mr-2 -mt-1 rounded-lg disabled:opacity-40 min-h-[44px] min-w-[44px] flex items-center justify-center"
             style={{ color: "var(--text-muted)" }}
           >
             <X className="w-5 h-5" />
@@ -117,6 +173,7 @@ export function Dialog({
           body
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

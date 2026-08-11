@@ -16,6 +16,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Dialog } from "@/components/Dialog";
 import Papa from "papaparse";
 import { ContactItem } from "@/lib/mockStore";
 import { ContactStage, ContactSource, ContactType } from "@/lib/database.types";
@@ -381,14 +382,20 @@ export default function LeadsPage() {
       )}
 
       {/* Add Lead Modal - Mobile Optimized */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto" style={{ background: "var(--bg-modal-overlay)" }}>
-          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-xl border space-y-4 animate-fade-in my-auto" style={{ background: "var(--bg-card)", borderColor: "var(--border-primary)", boxShadow: "var(--shadow-lg)" }}>
-            <div className="flex items-center justify-between pb-3 border-b" style={{ borderColor: "var(--border-primary)" }}>
-              <h3 className="text-sm sm:text-base font-semibold" style={{ color: "var(--text-primary)" }}>New Lead</h3>
-              <button onClick={() => setIsAddModalOpen(false)} style={{ color: "var(--text-muted)" }}><X className="w-5 h-5" /></button>
-            </div>
-            <form onSubmit={handleCreateLead} className="space-y-3 text-xs sm:text-sm">
+      <Dialog
+        open={isAddModalOpen}
+        title="New Lead"
+        onClose={() => setIsAddModalOpen(false)}
+        onSubmit={handleCreateLead}
+        busy={savingLead}
+        footer={
+          <>
+            <button type="button" onClick={() => setIsAddModalOpen(false)} disabled={savingLead} className="px-4 py-2 rounded-lg text-xs font-medium min-h-[44px] disabled:opacity-50" style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>Cancel</button>
+            <button type="submit" disabled={savingLead} className="px-4 py-2 rounded-lg text-xs font-medium min-h-[44px] disabled:opacity-60 disabled:cursor-not-allowed" style={{ background: "var(--accent)", color: "var(--text-inverse)" }}>{savingLead ? "Saving..." : "Save Lead"}</button>
+          </>
+        }
+      >
+        <></>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Full Name *</label>
@@ -431,14 +438,7 @@ export default function LeadsPage() {
                 <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Tags (comma-separated)</label>
                 <input type="text" value={formData.tags} onChange={(e) => setFormData({ ...formData, tags: e.target.value })} placeholder="Comma-separated tags" className="w-full rounded-lg px-3 py-2 focus:outline-none" style={inputStyle} />
               </div>
-              <div className="pt-3 border-t flex items-center justify-end gap-2" style={{ borderColor: "var(--border-primary)" }}>
-                <button type="button" onClick={() => setIsAddModalOpen(false)} className="px-4 py-2 rounded-lg text-xs font-medium" style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>Cancel</button>
-                <button type="submit" disabled={savingLead} className="px-4 py-2 rounded-lg text-xs font-medium min-h-[44px] disabled:opacity-60 disabled:cursor-not-allowed" style={{ background: "var(--accent)", color: "var(--text-inverse)" }}>{savingLead ? "Saving..." : "Save Lead"}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      </Dialog>
     </div>
   );
 }

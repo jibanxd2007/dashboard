@@ -128,7 +128,12 @@ export default function MeetingsPage() {
     const found = validate(meetingForm);
     setErrors(found);
     if (Object.keys(found).length > 0) {
-      toast.error("Check the highlighted fields.");
+      const first = Object.keys(found)[0];
+      toast.error(found[first]);
+      // The dialog body scrolls, so bring the offending field into view.
+      const el = document.querySelector<HTMLElement>(`[data-field="${first}"]`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      el?.focus({ preventScroll: true });
       return;
     }
 
@@ -501,6 +506,7 @@ export default function MeetingsPage() {
                   onBlur={() => setErrors(validate(meetingForm))}
                   placeholder="Discovery call"
                   className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
+                  data-field="title"
                   style={errors.title ? errStyle : inputStyle}
                 />
                 {fieldError("title")}
@@ -556,6 +562,7 @@ export default function MeetingsPage() {
                     onChange={(e) => setMeetingForm({ ...meetingForm, starts_at: e.target.value })}
                     onBlur={() => setErrors(validate(meetingForm))}
                     className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
+                    data-field="starts_at"
                     style={errors.starts_at ? errStyle : inputStyle}
                   />
                   {fieldError("starts_at")}
@@ -570,6 +577,7 @@ export default function MeetingsPage() {
                     onChange={(e) => setMeetingForm({ ...meetingForm, ends_at: e.target.value })}
                     onBlur={() => setErrors(validate(meetingForm))}
                     className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
+                    data-field="ends_at"
                     style={errors.ends_at ? errStyle : inputStyle}
                   />
                   {fieldError("ends_at")}
@@ -636,6 +644,7 @@ export default function MeetingsPage() {
                         onBlur={() => setErrors(validate(meetingForm))}
                         placeholder="teammate@example.com, other@example.com"
                         className="w-full rounded-lg px-3 py-2 text-xs focus:outline-none"
+                        data-field="additional_recipients"
                         style={errors.additional_recipients ? errStyle : inputStyle}
                       />
                       {fieldError("additional_recipients")}

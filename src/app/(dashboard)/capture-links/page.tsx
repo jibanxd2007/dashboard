@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Dialog } from "@/components/Dialog";
 import { QRCodeSVG } from "qrcode.react";
 import { CaptureLinkItem, ContactItem } from "@/lib/mockStore";
 import { ContactSource } from "@/lib/database.types";
@@ -181,14 +182,22 @@ export default function CaptureLinksPage() {
       )}
 
       {/* QR Code Modal */}
-      {activeQrModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "var(--bg-modal-overlay)" }}>
-          <div className="w-full max-w-xs p-6 rounded-xl border space-y-4 text-center animate-fade-in" style={{ background: "var(--bg-card)", borderColor: "var(--border-primary)", boxShadow: "var(--shadow-lg)" }}>
-            <div className="flex items-center justify-between pb-2 border-b" style={{ borderColor: "var(--border-secondary)" }}>
-              <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{activeQrModal.label}</h3>
-              <button onClick={() => setActiveQrModal(null)} style={{ color: "var(--text-muted)" }}><X className="w-4 h-4" /></button>
-            </div>
-
+      <Dialog
+        open={Boolean(activeQrModal)}
+        title={activeQrModal?.label || "QR Code"}
+        onClose={() => setActiveQrModal(null)}
+        footer={
+          <button
+            onClick={() => activeQrModal && handleCopy(activeQrModal.slug)}
+            className="w-full py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5 min-h-[44px]"
+            style={{ background: "var(--accent)", color: "var(--text-inverse)" }}
+          >
+            <Copy className="w-4 h-4" /> Copy URL
+          </button>
+        }
+      >
+        {activeQrModal && (
+          <div className="text-center space-y-4">
             <div className="p-4 bg-white rounded-xl inline-block mx-auto">
               <QRCodeSVG
                 value={`${typeof window !== "undefined" ? window.location.origin : ""}/l/${activeQrModal.slug}`}
@@ -198,30 +207,30 @@ export default function CaptureLinksPage() {
             </div>
 
             <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-              Scan to open lead capture form.
+              Scan to open the lead capture form.
             </p>
-
-            <button
-              onClick={() => handleCopy(activeQrModal.slug)}
-              className="w-full py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
-              style={{ background: "var(--accent)", color: "var(--text-inverse)" }}
-            >
-              <Copy className="w-4 h-4" /> Copy URL
-            </button>
+            <p className="text-xs font-mono break-all" style={{ color: "var(--text-secondary)" }}>
+              /l/{activeQrModal.slug}
+            </p>
           </div>
-        </div>
-      )}
+        )}
+      </Dialog>
 
       {/* Create Link Modal */}
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "var(--bg-modal-overlay)" }}>
-          <div className="w-full max-w-lg p-6 rounded-xl border space-y-4 animate-fade-in" style={{ background: "var(--bg-card)", borderColor: "var(--border-primary)", boxShadow: "var(--shadow-lg)" }}>
-            <div className="flex items-center justify-between pb-3 border-b" style={{ borderColor: "var(--border-primary)" }}>
-              <h3 className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>Create Capture Link</h3>
-              <button onClick={() => setIsCreateModalOpen(false)} style={{ color: "var(--text-muted)" }}><X className="w-5 h-5" /></button>
-            </div>
-
-            <form onSubmit={handleCreateLink} className="space-y-3 text-sm">
+      <Dialog
+        open={isCreateModalOpen}
+        title="Create Capture Link"
+        onClose={() => setIsCreateModalOpen(false)}
+        onSubmit={handleCreateLink}
+        busy={savingLink}
+        footer={
+          <>
+            <button type="button" onClick={() => setIsCreateModalOpen(false)} disabled={savingLink} className="px-4 py-2 rounded-lg text-xs font-medium min-h-[44px] disabled:opacity-50" style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>Cancel</button>
+            <button type="submit" disabled={savingLink} className="px-4 py-2 rounded-lg text-xs font-medium min-h-[44px] disabled:opacity-60 disabled:cursor-not-allowed" style={{ background: "var(--accent)", color: "var(--text-inverse)" }}>{savingLink ? "Creating..." : "Create Link"}</button>
+          </>
+        }
+      >
+        <></>
               <div>
                 <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Label Name *</label>
                 <input
@@ -283,14 +292,7 @@ export default function CaptureLinksPage() {
                 />
               </div>
 
-              <div className="pt-3 border-t flex items-center justify-end gap-2" style={{ borderColor: "var(--border-primary)" }}>
-                <button type="button" onClick={() => setIsCreateModalOpen(false)} className="px-4 py-2 rounded-lg text-xs font-medium" style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>Cancel</button>
-                <button type="submit" disabled={savingLink} className="px-4 py-2 rounded-lg text-xs font-medium min-h-[44px] disabled:opacity-60 disabled:cursor-not-allowed" style={{ background: "var(--accent)", color: "var(--text-inverse)" }}>{savingLink ? "Creating..." : "Create Link"}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      </Dialog>
     </div>
   );
 }

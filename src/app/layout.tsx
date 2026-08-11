@@ -34,11 +34,30 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/*
+          Applies the saved theme before first paint. The class used to be
+          hardcoded to "dark" here, so a saved light preference was rendered
+          dark by the server and only corrected after hydration — the toggle
+          looked like it had not persisted.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("theme")||"dark";if(t==="dark")document.documentElement.classList.add("dark");}catch(e){document.documentElement.classList.add("dark");}})();`,
+          }}
+        />
+      </head>
       <body className={`${inter.className} antialiased`}>
         <ThemeProvider>
           {children}
-          <Toaster position="top-right" richColors closeButton />
+          {/* Toasts sit above dialogs so a save result is never hidden. */}
+          <Toaster
+            position="top-right"
+            richColors
+            closeButton
+            style={{ zIndex: "var(--z-toast)" as any }}
+          />
         </ThemeProvider>
       </body>
     </html>

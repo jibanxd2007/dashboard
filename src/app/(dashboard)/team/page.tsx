@@ -16,6 +16,7 @@ import {
   ExternalLink,
   UserCheck,
   CalendarDays,
+  Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog } from "@/components/Dialog";
@@ -841,14 +842,23 @@ export default function TeamPage() {
                         <button
                           key={m.id}
                           type="button"
+                          aria-pressed={selected}
+                          title={selected ? `Remove ${m.full_name}` : `Invite ${m.full_name}`}
                           onClick={() => toggleAttendee(m.id)}
-                          className="text-xs px-2.5 py-1 rounded-full font-medium transition-all border"
+                          className="text-xs pl-2 pr-2.5 py-1.5 rounded-full font-medium transition-all border cursor-pointer flex items-center gap-1.5"
                           style={{
                             background: selected ? "var(--accent)" : "var(--bg-card)",
                             color: selected ? "var(--text-inverse)" : "var(--text-secondary)",
                             borderColor: selected ? "var(--accent)" : "var(--border-primary)",
                           }}
                         >
+                          {/* An explicit tick/plus, so the chips cannot be
+                              mistaken for static labels. */}
+                          {selected ? (
+                            <Check className="w-3.5 h-3.5 shrink-0" />
+                          ) : (
+                            <Plus className="w-3.5 h-3.5 shrink-0" style={{ opacity: 0.6 }} />
+                          )}
                           {m.full_name}
                         </button>
                       );

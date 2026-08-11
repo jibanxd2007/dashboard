@@ -202,8 +202,10 @@ export function CopilotDrawer() {
       {/* Floating Trigger Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-5 right-5 md:bottom-6 md:right-6 z-40 p-3.5 rounded-full shadow-xl transition-transform hover:scale-105 active:scale-95 flex items-center justify-center border"
+        className="fixed bottom-5 right-5 md:bottom-6 md:right-6 p-3.5 rounded-full shadow-xl transition-transform hover:scale-105 active:scale-95 flex items-center justify-center border"
         style={{
+          // Below dialogs so it cannot float over an open modal.
+          zIndex: "var(--z-sidebar)" as any,
           background: "var(--accent)",
           color: "var(--text-inverse)",
           borderColor: "var(--accent-hover)",
@@ -216,8 +218,8 @@ export function CopilotDrawer() {
       {/* Drawer / Sheet Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-50 flex justify-end"
-          style={{ background: "var(--bg-modal-overlay)" }}
+          className="fixed inset-0 flex justify-end"
+          style={{ zIndex: "var(--z-copilot)" as any, background: "var(--bg-modal-overlay)" }}
         >
           {/* Backdrop click to close */}
           <div className="flex-1" onClick={() => setIsOpen(false)} />

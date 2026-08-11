@@ -159,11 +159,15 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row" style={{ background: "var(--bg-primary)" }}>
+    <div className="min-h-dvh flex flex-col md:flex-row" style={{ background: "var(--bg-primary)" }}>
       {/* Mobile Top Header */}
       <div
-        className="md:hidden flex items-center justify-between p-4 sticky top-0 z-40 border-b"
-        style={{ background: "#161622", borderColor: "rgba(255,255,255,0.08)" }}
+        className="md:hidden flex items-center justify-between p-4 sticky top-0 border-b"
+        style={{
+          zIndex: "var(--z-sidebar)" as any,
+          background: "#161622",
+          borderColor: "rgba(255,255,255,0.08)",
+        }}
       >
         <Link href="/" className="flex items-center gap-2 font-bold text-lg text-white">
           <div
@@ -188,10 +192,11 @@ export default function DashboardLayout({
 
       {/* Sidebar — Reference Style Dark Navigation */}
       <aside
-        className={`fixed md:sticky top-0 left-0 z-50 h-screen w-64 flex flex-col justify-between p-5 transition-transform duration-200 ease-in-out shrink-0 overflow-y-auto ${
+        className={`fixed md:sticky top-0 left-0 h-screen w-64 flex flex-col justify-between p-5 transition-transform duration-200 ease-in-out shrink-0 overflow-y-auto ${
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
         style={{
+          zIndex: "var(--z-sidebar)" as any,
           background: "#161622",
           borderRight: "1px solid rgba(255,255,255,0.06)",
         }}
@@ -271,10 +276,12 @@ export default function DashboardLayout({
             </div>
             <button
               onClick={handleLock}
-              className="p-2.5 rounded-xl transition-colors text-red-400 hover:bg-red-500/10 flex items-center justify-center shrink-0"
-              title="Lock Session"
+              aria-label="Lock session and sign out"
+              className="px-3 py-2.5 rounded-xl transition-colors text-red-400 hover:bg-red-500/10 flex items-center justify-center gap-1.5 shrink-0 text-xs font-medium min-h-[44px]"
+              title="Lock session — you will need your PIN to get back in"
             >
               <Lock className="w-4 h-4" />
+              <span>Lock</span>
             </button>
           </div>
         </div>
@@ -283,13 +290,19 @@ export default function DashboardLayout({
       {/* Backdrop for mobile */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-40 md:hidden"
-          style={{ background: "var(--bg-modal-overlay)" }}
+          className="fixed inset-0 md:hidden"
+          style={{
+            zIndex: "calc(var(--z-sidebar) - 1)" as any,
+            background: "var(--bg-modal-overlay)",
+          }}
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
 
       {/* Main Content */}
+      {/* flex-1 inside the min-h-dvh shell already fills the window, so short
+          pages leave no dead band. A min-height here instead would stack with
+          the mobile header and make every page scroll by that much. */}
       <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full overflow-x-hidden relative">
         <StorageWarningBanner />
         {children}
