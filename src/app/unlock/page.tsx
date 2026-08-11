@@ -135,7 +135,7 @@ export default function UnlockPage() {
         <div className="text-center pt-3 border-t" style={{ borderColor: "var(--border-secondary)" }}>
           <p className="text-xs flex items-center justify-center gap-1.5" style={{ color: "var(--text-muted)" }}>
             <ShieldCheck className="w-3.5 h-3.5" style={{ color: "var(--accent-text)" }} />
-            Default PIN: <span className="font-mono font-semibold" style={{ color: "var(--accent-text)" }}>123456</span>
+            Private workspace
           </p>
         </div>
       </div>
