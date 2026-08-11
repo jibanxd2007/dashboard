@@ -18,6 +18,7 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Dialog } from "@/components/Dialog";
 import { TeamMemberItem, TeamMeetingItem } from "@/lib/mockStore";
 import { MeetingMode, TeamRole, TeamMemberStatus } from "@/lib/database.types";
 
@@ -587,22 +588,35 @@ export default function TeamPage() {
       )}
 
       {/* Member modal */}
-      {memberModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "var(--bg-modal-overlay)" }} onClick={closeDialogs}>
-          <div
-            role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()} className="w-full max-w-lg p-6 rounded-xl border space-y-4 animate-fade-in max-h-[90vh] overflow-y-auto"
-            style={{ background: "var(--bg-card)", borderColor: "var(--border-primary)", boxShadow: "var(--shadow-lg)" }}
-          >
-            <div className="flex items-center justify-between pb-3 border-b sticky top-0 z-10 -mt-6 pt-6" style={{ borderColor: "var(--border-primary)", background: "var(--bg-card)" }}>
-              <h3 className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
-                {editingId ? "Edit Member" : "Add Team Member"}
-              </h3>
-              <button onClick={() => setMemberModal(false)} style={{ color: "var(--text-muted)" }}>
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveMember} className="space-y-3 text-sm" noValidate>
+      <Dialog
+        open={memberModal}
+        title={editingId ? "Edit Member" : "Add Team Member"}
+        onClose={closeDialogs}
+        onSubmit={handleSaveMember}
+        busy={saving}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={closeDialogs}
+              disabled={saving}
+              className="px-4 py-2 rounded-lg text-xs font-medium min-h-[44px] disabled:opacity-50"
+              style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)" }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-4 py-2 rounded-lg text-xs font-medium min-h-[44px] disabled:opacity-50"
+              style={{ background: "var(--accent)", color: "var(--text-inverse)" }}
+            >
+              {saving ? "Saving..." : editingId ? "Save Changes" : "Add Member"}
+            </button>
+          </>
+        }
+      >
+        <></>
               <div>
                 <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Full Name *</label>
                 <input
@@ -699,44 +713,38 @@ export default function TeamPage() {
                 />
               </div>
 
-              <div className="pt-3 border-t flex items-center justify-end gap-2" style={{ borderColor: "var(--border-primary)" }}>
-                <button
-                  type="button"
-                  onClick={() => setMemberModal(false)}
-                  className="px-4 py-2 rounded-lg text-xs font-medium"
-                  style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)" }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-4 py-2 rounded-lg text-xs font-medium disabled:opacity-50"
-                  style={{ background: "var(--accent)", color: "var(--text-inverse)" }}
-                >
-                  {saving ? "Saving..." : editingId ? "Save Changes" : "Add Member"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      </Dialog>
 
       {/* Meeting modal */}
-      {meetingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "var(--bg-modal-overlay)" }} onClick={closeDialogs}>
-          <div
-            role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()} className="w-full max-w-lg p-6 rounded-xl border space-y-4 animate-fade-in max-h-[90vh] overflow-y-auto"
-            style={{ background: "var(--bg-card)", borderColor: "var(--border-primary)", boxShadow: "var(--shadow-lg)" }}
-          >
-            <div className="flex items-center justify-between pb-3 border-b sticky top-0 z-10 -mt-6 pt-6" style={{ borderColor: "var(--border-primary)", background: "var(--bg-card)" }}>
-              <h3 className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>Schedule Team Meeting</h3>
-              <button onClick={() => setMeetingModal(false)} style={{ color: "var(--text-muted)" }}>
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateMeeting} className="space-y-3 text-sm" noValidate>
+      <Dialog
+        open={meetingModal}
+        title="Schedule Team Meeting"
+        onClose={closeDialogs}
+        onSubmit={handleCreateMeeting}
+        busy={saving}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={closeDialogs}
+              disabled={saving}
+              className="px-4 py-2 rounded-lg text-xs font-medium min-h-[44px] disabled:opacity-50"
+              style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)" }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-4 py-2 rounded-lg text-xs font-medium min-h-[44px] disabled:opacity-50"
+              style={{ background: "var(--accent)", color: "var(--text-inverse)" }}
+            >
+              {saving ? "Saving..." : "Save Meeting"}
+            </button>
+          </>
+        }
+      >
+        <></>
               <div>
                 <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Meeting Title *</label>
                 <input
@@ -860,28 +868,7 @@ export default function TeamPage() {
                 />
               </div>
 
-              <div className="pt-3 border-t flex items-center justify-end gap-2" style={{ borderColor: "var(--border-primary)" }}>
-                <button
-                  type="button"
-                  onClick={() => setMeetingModal(false)}
-                  className="px-4 py-2 rounded-lg text-xs font-medium"
-                  style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)" }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-4 py-2 rounded-lg text-xs font-medium disabled:opacity-50"
-                  style={{ background: "var(--accent)", color: "var(--text-inverse)" }}
-                >
-                  {saving ? "Saving..." : "Save Meeting"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      </Dialog>
     </div>
   );
 }

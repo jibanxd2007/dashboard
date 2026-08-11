@@ -17,6 +17,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Dialog } from "@/components/Dialog";
 import { MeetingItem, ContactItem, AttendeeReminder } from "@/lib/mockStore";
 import { MeetingMode } from "@/lib/database.types";
 
@@ -455,42 +456,40 @@ export default function MeetingsPage() {
         </div>
       )}
 
-      {isModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: "var(--bg-modal-overlay)" }}
-          onClick={() => !saving && closeModal()}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Schedule meeting"
-            className="w-full max-w-lg p-6 rounded-xl border space-y-4 animate-fade-in max-h-[90vh] overflow-y-auto"
-            style={{
-              background: "var(--bg-card)",
-              borderColor: "var(--border-primary)",
-              boxShadow: "var(--shadow-lg)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div
-              className="flex items-center justify-between pb-3 border-b"
-              style={{ borderColor: "var(--border-primary)" }}
+      <Dialog
+        open={isModalOpen}
+        title="Schedule Meeting"
+        onClose={closeModal}
+        onSubmit={handleCreateMeeting}
+        busy={saving}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={closeModal}
+              disabled={saving}
+              className="px-4 py-2 rounded-lg text-xs font-medium min-h-[44px] disabled:opacity-50"
+              style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)" }}
             >
-              <h3 className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
-                Schedule Meeting
-              </h3>
-              <button
-                onClick={closeModal}
-                disabled={saving}
-                aria-label="Close"
-                style={{ color: "var(--text-muted)" }}
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateMeeting} className="space-y-3 text-sm" noValidate>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-4 py-2 rounded-lg text-xs font-medium min-h-[44px] flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{ background: "var(--accent)", color: "var(--text-inverse)" }}
+            >
+              {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {saving
+                ? meetingForm.send_invite
+                  ? "Saving and sending..."
+                  : "Saving..."
+                : "Save Meeting"}
+            </button>
+          </>
+        }
+      >
+        <></>
               <div>
                 <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
                   Meeting Title *
@@ -683,37 +682,7 @@ export default function MeetingsPage() {
                 />
               </div>
 
-              <div
-                className="pt-3 border-t flex items-center justify-end gap-2"
-                style={{ borderColor: "var(--border-primary)" }}
-              >
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  disabled={saving}
-                  className="px-4 py-2 rounded-lg text-xs font-medium min-h-[44px] disabled:opacity-50"
-                  style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)" }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-4 py-2 rounded-lg text-xs font-medium min-h-[44px] flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-                  style={{ background: "var(--accent)", color: "var(--text-inverse)" }}
-                >
-                  {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  {saving
-                    ? meetingForm.send_invite
-                      ? "Saving and sending..."
-                      : "Saving..."
-                    : "Save Meeting"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      </Dialog>
     </div>
   );
 }
