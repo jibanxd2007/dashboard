@@ -46,6 +46,7 @@ export default function LeadsPage() {
   const [selectedType, setSelectedType] = useState<string>("all");
   const [selectedSource, setSelectedSource] = useState<string>("all");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [savingLead, setSavingLead] = useState(false);
 
   const [formData, setFormData] = useState({
     full_name: "",
@@ -100,26 +101,31 @@ export default function LeadsPage() {
 
   const handleCreateLead = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (savingLead) return; // guard against double submit
     if (!formData.full_name || !formData.phone) {
       toast.error("Name and Phone are required");
       return;
     }
+    setSavingLead(true);
     try {
       const res = await fetch("/api/contacts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
         toast.success("Lead created!");
         setIsAddModalOpen(false);
         setFormData({ full_name: "", company: "", email: "", phone: "", type: "lead", stage: "new", source: "instagram", deal_value: 0, tags: "", notes: "" });
         fetchContacts();
       } else {
-        toast.error("Failed to create lead");
+        toast.error(data.error || "Failed to create lead");
       }
     } catch (e) {
-      toast.error("Error creating lead");
+      toast.error("Could not reach the server. The lead was not saved.");
+    } finally {
+      setSavingLead(false);
     }
   };
 
@@ -427,7 +433,7 @@ export default function LeadsPage() {
               </div>
               <div className="pt-3 border-t flex items-center justify-end gap-2" style={{ borderColor: "var(--border-primary)" }}>
                 <button type="button" onClick={() => setIsAddModalOpen(false)} className="px-4 py-2 rounded-lg text-xs font-medium" style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>Cancel</button>
-                <button type="submit" className="px-4 py-2 rounded-lg text-xs font-medium" style={{ background: "var(--accent)", color: "var(--text-inverse)" }}>Save Lead</button>
+                <button type="submit" disabled={savingLead} className="px-4 py-2 rounded-lg text-xs font-medium min-h-[44px] disabled:opacity-60 disabled:cursor-not-allowed" style={{ background: "var(--accent)", color: "var(--text-inverse)" }}>{savingLead ? "Saving..." : "Save Lead"}</button>
               </div>
             </form>
           </div>

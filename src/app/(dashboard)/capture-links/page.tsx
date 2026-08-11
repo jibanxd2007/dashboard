@@ -22,6 +22,7 @@ export default function CaptureLinksPage() {
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
   const [activeQrModal, setActiveQrModal] = useState<CaptureLinkItem | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [savingLink, setSavingLink] = useState(false);
 
   const [form, setForm] = useState({
     slug: "",
@@ -61,11 +62,13 @@ export default function CaptureLinksPage() {
 
   const handleCreateLink = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (savingLink) return; // guard against double submit
     if (!form.slug || !form.label) {
       toast.error("Slug and label are required");
       return;
     }
 
+    setSavingLink(true);
     try {
       const res = await fetch("/api/capture-links", {
         method: "POST",
@@ -79,10 +82,13 @@ export default function CaptureLinksPage() {
         setForm({ slug: "", label: "", source: "instagram", campaign: "" });
         fetchData();
       } else {
-        toast.error("Failed to create link");
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || "Failed to create link");
       }
     } catch (e) {
-      toast.error("Error creating capture link");
+      toast.error("Could not reach the server. The link was not created.");
+    } finally {
+      setSavingLink(false);
     }
   };
 
@@ -279,7 +285,7 @@ export default function CaptureLinksPage() {
 
               <div className="pt-3 border-t flex items-center justify-end gap-2" style={{ borderColor: "var(--border-primary)" }}>
                 <button type="button" onClick={() => setIsCreateModalOpen(false)} className="px-4 py-2 rounded-lg text-xs font-medium" style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>Cancel</button>
-                <button type="submit" className="px-4 py-2 rounded-lg text-xs font-medium" style={{ background: "var(--accent)", color: "var(--text-inverse)" }}>Create Link</button>
+                <button type="submit" disabled={savingLink} className="px-4 py-2 rounded-lg text-xs font-medium min-h-[44px] disabled:opacity-60 disabled:cursor-not-allowed" style={{ background: "var(--accent)", color: "var(--text-inverse)" }}>{savingLink ? "Creating..." : "Create Link"}</button>
               </div>
             </form>
           </div>

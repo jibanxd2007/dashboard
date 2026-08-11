@@ -26,6 +26,7 @@ export default function TasksPage() {
   const [selectedPriority, setSelectedPriority] = useState<string>("all");
   const [statusTab, setStatusTab] = useState<"open" | "completed" | "all">("open");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [savingTask, setSavingTask] = useState(false);
 
   const [taskForm, setTaskForm] = useState({
     title: "",
@@ -82,11 +83,13 @@ export default function TasksPage() {
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (savingTask) return; // guard against double submit
     if (!taskForm.title.trim()) {
       toast.error("Task title is required");
       return;
     }
 
+    setSavingTask(true);
     try {
       const res = await fetch("/api/tasks", {
         method: "POST",
@@ -106,10 +109,13 @@ export default function TasksPage() {
         });
         fetchData();
       } else {
-        toast.error("Failed to create task");
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || "Failed to create task");
       }
     } catch (e) {
-      toast.error("Error creating task");
+      toast.error("Could not reach the server. The task was not saved.");
+    } finally {
+      setSavingTask(false);
     }
   };
 
@@ -375,7 +381,7 @@ export default function TasksPage() {
 
               <div className="pt-3 border-t flex items-center justify-end gap-2" style={{ borderColor: "var(--border-primary)" }}>
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 rounded-lg text-xs font-medium" style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)" }}>Cancel</button>
-                <button type="submit" className="px-4 py-2 rounded-lg text-xs font-medium" style={{ background: "var(--accent)", color: "var(--text-inverse)" }}>Save Task</button>
+                <button type="submit" disabled={savingTask} className="px-4 py-2 rounded-lg text-xs font-medium min-h-[44px] disabled:opacity-60 disabled:cursor-not-allowed" style={{ background: "var(--accent)", color: "var(--text-inverse)" }}>{savingTask ? "Saving..." : "Save Task"}</button>
               </div>
             </form>
           </div>
